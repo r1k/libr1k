@@ -1,4 +1,20 @@
+<<<<<<< HEAD
 a52dec-0.7.4/vc++/Debug/
 a52dec-0.7.4/vc++/Release/
 libr1k/Debug/
 libr1k/Release/
+=======
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+>>>>>>> origin/master
