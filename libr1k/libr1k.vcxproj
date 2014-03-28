@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1EA68BC6-1568-42B4-9A5A-411B71598DA3}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libr1k</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\work\src\libr1k\include;C:\work\src\libr1k\libr1k\internal_includes;C:\work\src\libr1k\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\work\src\libr1k\include;C:\work\src\libr1k\libr1k\internal_includes;C:\work\src\libr1k\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\AC3.h" />
+    <ClInclude Include="..\include\AudioDSPFilters.h" />
+    <ClInclude Include="..\include\AudioDSPFilters_Goertzel.h" />
+    <ClInclude Include="..\include\AudioDSPFilters_Goertzel_dev.h" />
+    <ClInclude Include="..\include\BigNum.h" />
+    <ClInclude Include="..\include\bitOperators.h" />
+    <ClInclude Include="..\include\BitReverse.h" />
+    <ClInclude Include="..\include\BitStream.h" />
+    <ClInclude Include="..\include\BitStreamReader.h" />
+    <ClInclude Include="..\include\CommandLineParse.h" />
+    <ClInclude Include="..\include\crc.h" />
+    <ClInclude Include="..\include\DataBuffer.h" />
+    <ClInclude Include="..\include\DTSPacketHandler.h" />
+    <ClInclude Include="..\include\ESDumpPacketHandler.h" />
+    <ClInclude Include="..\include\esPacketDecoder.h" />
+    <ClInclude Include="..\include\Exceptions.h" />
+    <ClInclude Include="..\include\fileReader.h" />
+    <ClInclude Include="..\include\fileWriter.h" />
+    <ClInclude Include="..\include\LA_debug.h" />
+    <ClInclude Include="..\include\libr1k.h" />
+    <ClInclude Include="..\include\Log.h" />
+    <ClInclude Include="..\include\LPCMPacketHandler.h" />
+    <ClInclude Include="..\include\maths.h" />
+    <ClInclude Include="..\include\profiler.h" />
+    <ClInclude Include="..\include\SampleBuffer.h" />
+    <ClInclude Include="..\include\Types.h" />
+    <ClInclude Include="..\include\pcr.h" />
+    <ClInclude Include="..\include\PESPacketHandler.h" />
+    <ClInclude Include="..\include\PTSPacketHandler.h" />
+    <ClInclude Include="..\include\TransportPacket.h" />
+    <ClInclude Include="..\include\TSPacketHandler.h" />
+    <ClInclude Include="..\include\WAVFile.h" />
+    <ClInclude Include="..\include\_no_copy.h" />
+    <ClInclude Include="internal_includes\liba52_wrapper.h" />
+    <ClInclude Include="src\targetver.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\AC3.cpp" />
+    <ClCompile Include="src\AudioDSPFilters_Goertzel.cpp" />
+    <ClCompile Include="src\AudioDSPFilters_Goertzel_dev.cpp" />
+    <ClCompile Include="src\BigNum.cpp" />
+    <ClCompile Include="src\BitReverse.cpp" />
+    <ClCompile Include="src\BitStream.cpp" />
+    <ClCompile Include="src\BitStreamReader.cpp" />
+    <ClCompile Include="src\codeLibraryRiK.cpp" />
+    <ClCompile Include="src\CommandLineParse.cpp" />
+    <ClCompile Include="src\crc.cpp" />
+    <ClCompile Include="src\DTSPacketHandler.cpp" />
+    <ClCompile Include="src\ESDumpPacketHandler.cpp" />
+    <ClCompile Include="src\esPacketDecoder.cpp" />
+    <ClCompile Include="src\fileReader.cpp" />
+    <ClCompile Include="src\fileWriter.cpp" />
+    <ClCompile Include="src\liba52_wrapper.cpp" />
+    <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\LPCMPacketHandler.cpp" />
+    <ClCompile Include="src\pcr.cpp" />
+    <ClCompile Include="src\PESPacketHandler.cpp" />
+    <ClCompile Include="src\PTSPacketHandler.cpp" />
+    <ClCompile Include="src\SampleBuffer.cpp" />
+    <ClCompile Include="src\TransportPacket.cpp" />
+    <ClCompile Include="src\TSPacketHandler.cpp" />
+    <ClCompile Include="src\WAVFile.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\a52dec-0.7.4\vc++\liba52.vcxproj">
+      <Project>{67b7bea9-e511-4ce2-9c6b-a06afe6a4e74}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\a52dec-0.7.4\vc++\libao.vcxproj">
+      <Project>{0f5e3301-4529-48d3-8593-97c1c51336ad}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

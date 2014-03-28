@@ -1,0 +1,18 @@
+#pragma once
+
+#include "libr1k.h"
+
+#include <exception>
+#include <stdexcept>
+
+namespace libr1k
+{
+
+    class no_data_remaining : public std::out_of_range 
+    {
+    public:
+        no_data_remaining() {}
+        no_data_remaining(const string& _Message) : out_of_range(_Message){}
+        no_data_remaining(const char *_Message) : out_of_range(_Message){}
+    };
+}
