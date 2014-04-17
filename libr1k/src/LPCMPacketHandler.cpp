@@ -131,7 +131,7 @@ namespace libr1k
 		//int payloadSize = *BufferSize - 4; // less AES packet header size
 		(*BufferSize) -= 4;
 
-		int NumStereoPairsStuffed = AESHeader.audioPacketSize / (AESHeader.numChannels * ((AESHeader.bitDepth + 4) / 8));
+		int NumStereoPairsStuffed = AESHeader.audioPacketSize / (AESHeader.numChannels * ((AESHeader.bitDepth + 4) + 7 / 8));  // +7 to make sure we round up
 
 		this->FrameCount++;
 
