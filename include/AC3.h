@@ -41,7 +41,7 @@ namespace libr1k
 
         uint64_t PTS;
 
-    private:
+    protected:
 
         int bufferSize;
         bool syncFound;
@@ -116,11 +116,12 @@ namespace libr1k
         AC3Decoder() :
             ac3_frame(nullptr) {}
         virtual ~AC3Decoder() {}
+
     protected:
+        shared_ptr<au_ac3_t> ac3_frame;
 
     private:
 
-        shared_ptr<au_ac3_t> ac3_frame;
     };
 	
     class AC3PacketHandler : public TSPacketHandler
@@ -138,15 +139,15 @@ namespace libr1k
 
 	protected:
 
-		ofstream *outStream;
+        ofstream *outStream;
 
-	private:
-
-		uint64_t firstPTS;
+        uint64_t firstPTS;
         shared_ptr<au_ac3_t> ac3Decoder;
 
-		bool DebugOn;
-		bool PacketSpansPES;
-		shared_ptr<Log> LogFile;
+        bool DebugOn;
+        bool PacketSpansPES;
+        shared_ptr<Log> LogFile;
+
+	private:
 	};
 }
