@@ -34,6 +34,20 @@ namespace libr1k
 		bool Complete;
 		int bytesStored;
 
+        void SetDataLength(const int PESPacketSize)
+        {
+            if (payload != nullptr)
+            {
+                delete[] payload;
+            }
+            payload = new uint8_t[PESPacketSize];
+
+            nextFreeByte = payload;
+
+            pesPacketLength = PESPacketSize;
+            Started = true;
+        }
+
 		int GetCurrentDataLength()
 		{
 			if (nextFreeByte && payload)
@@ -42,6 +56,28 @@ namespace libr1k
 			}
 			return 0;
 		}
+
+        uint8_t *GetPESData()
+        {
+            if (bytesStored > 10)
+            {
+                // The start of the data is the number of bytes in the PES header length field
+                return &(payload[9]) + payload[8]; 
+            }
+            else
+            {
+                return nullptr;
+            }
+        }
+
+        int GetPESDataLength()
+        {
+            uint8_t* dataStart = GetPESData();
+            if (dataStart != nullptr)
+                return nextFreeByte - dataStart;
+            else
+                return 0;
+        }
 
 		void AddNewData(const uint8_t *d, int s)
 		{
@@ -55,6 +91,15 @@ namespace libr1k
 				memcpy(nextFreeByte, d, s);
 				nextFreeByte += s;
 			}
+
+            if (GetCurrentDataLength() < pesPacketLength)
+            {
+                Complete = false;
+            }
+            else if (GetCurrentDataLength() == pesPacketLength)
+            {
+                Complete = true;
+            }
 		}
 	};
 

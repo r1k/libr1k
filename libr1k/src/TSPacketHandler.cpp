@@ -204,24 +204,13 @@ namespace libr1k
 			if ( FindPESHeaderAndGetPTS(pPayload, &(pPacket->PTS)) )
 			{
 				pPacket->type = stream_id;
-				pPacket->payload = new uint8_t[PESPacketSize];
-				pPacket->nextFreeByte = pPacket->payload;
-				pPacket->pesPacketLength = PESPacketSize;		
-				pPacket->Started = true;
+                pPacket->SetDataLength(PESPacketSize);
 
 				int copy = min(PayloadSize, pPacket->pesPacketLength - pPacket->GetCurrentDataLength());
 				pPacket->AddNewData(pPayload, copy);
 				
 				BufferLevel += PayloadSize;
-				// Now put this packet on the queue
-				if (pPacket->GetCurrentDataLength() < pPacket->pesPacketLength)
-				{
-					pPacket->Complete = false;
-				}
-				else if (pPacket->GetCurrentDataLength() == pPacket->pesPacketLength)
-				{
-					pPacket->Complete = true;
-				}
+
 				return true;
 			}
 		}
