@@ -90,6 +90,7 @@
     <ClInclude Include="..\include\crc.h" />
     <ClInclude Include="..\include\DataBuffer.h" />
     <ClInclude Include="..\include\DTSPacketHandler.h" />
+    <ClInclude Include="..\include\EAC3.h" />
     <ClInclude Include="..\include\ESDumpPacketHandler.h" />
     <ClInclude Include="..\include\esPacketDecoder.h" />
     <ClInclude Include="..\include\Exceptions.h" />
@@ -126,6 +127,7 @@
     <ClCompile Include="src\CommandLineParse.cpp" />
     <ClCompile Include="src\crc.cpp" />
     <ClCompile Include="src\DTSPacketHandler.cpp" />
+    <ClCompile Include="src\EAC3.cpp" />
     <ClCompile Include="src\ESDumpPacketHandler.cpp" />
     <ClCompile Include="src\esPacketDecoder.cpp" />
     <ClCompile Include="src\fileReader.cpp" />
