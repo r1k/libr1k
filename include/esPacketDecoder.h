@@ -80,7 +80,7 @@ namespace libr1k
             _data.push(pData);
         }
 
-        virtual shared_ptr<au_esPacket_t> GetDecoder() { return au_frame_decoder; }
+        shared_ptr<au_esPacket_t> GetDecoder() { return au_frame_decoder; }
         
     protected:
         shared_ptr<Log> logger;
