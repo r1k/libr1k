@@ -442,19 +442,16 @@ namespace libr1k
 		uint8_t *PES_data = buf->GetPESData();
 		//// added to the first byte after the PES header length field
 		//// Need to adjust PESPacketSize to make it just the payload size
-		int PESDataSize = buf->GetPESDataLength();
+		unsigned int PESDataSize = buf->GetPESDataLength();
 
         if (!PESDataSize)
             return;
-		//
-		//// add data to decoder buffer
-		//ac3Decoder->newData(PES_data, PESPacketSize);	
 
-		//DecodeAC3Frame(buf->PTS);
+		DecodeFrame(&PES_data, &PESDataSize);
 
 	}
 
-	void EAC3PacketHandler::DecodeAC3Frame(const uint64_t PTS)
+    bool EAC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
 	{
 #if 0
         int return_val = au_ac3_t::AU_AC3_SYNC_NOT_FOUND;
@@ -577,6 +574,6 @@ namespace libr1k
 			OutputFile->WriteSample(0x0);
 		}
 #endif
-		return;
+		return false;
 	}
 }

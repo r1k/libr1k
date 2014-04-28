@@ -56,7 +56,7 @@ namespace libr1k
 		DTSPacketHandler(ofstream **str, bool Debug_on = false);
 		~DTSPacketHandler(void);
 
-		virtual bool DecodeDTSFrame( unsigned char **DTSFrame, unsigned int *BufferSize  );
+        virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
 		virtual void PESDecode ( PESPacket_t *buf );
 
 		void SetDebugOutput ( bool On );

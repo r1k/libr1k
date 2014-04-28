@@ -64,7 +64,7 @@ namespace libr1k
 		EAC3PacketHandler(ofstream **str, bool Debug_on = false);
         ~EAC3PacketHandler(void) {}
 
-		virtual void DecodeAC3Frame(const uint64_t PTS);
+        virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
 		virtual void PESDecode(PESPacket_t *buf);
 
 		void SetDebugOutput(bool On);

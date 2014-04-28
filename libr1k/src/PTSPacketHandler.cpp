@@ -80,7 +80,6 @@ namespace libr1k
         int PayloadSize = tsPacket->GetPayload(&pPayload);
         pPacket->Started = false;
         pPacket->Complete = false;
-        pPacket->bytesStored = 0;
 
         if (pPayload != NULL)
         {
@@ -97,17 +96,6 @@ namespace libr1k
                 pPacket->Started = true;
 
                 *this->outStream << PESPacketSize - PayloadSize << ",";
-
-                if (PayloadSize < PESPacketSize)
-                {
-                    pPacket->Complete = false;
-                }
-                else
-                {
-                    pPacket->Complete = true;
-                }
-
-                pPacket->bytesStored += PayloadSize;
 
                 return true;
             }
@@ -126,15 +114,6 @@ namespace libr1k
             *this->outStream << pPacket->pesPacketLength << ",";
             *this->outStream << pPacket->pesPacketLength - PayloadSize << ",";
 
-            pPacket->bytesStored += PayloadSize;
-            if (pPacket->bytesStored < pPacket->pesPacketLength)
-            {
-                pPacket->Complete = false;
-            }
-            else
-            {
-                pPacket->Complete = true;
-            }
             return true;
         }
         return false;
@@ -197,12 +176,10 @@ namespace libr1k
                         // signalling that we have the start of another PES packet
                         // lets overstamp the previous packet at the back of the queue as it's useless as we don't
                         // have the complete packet
-                        if (lastPacket->payload)
+                        if (lastPacket->payload.size())
                         {
-                            this->BufferLevel -= (lastPacket->nextFreeByte - lastPacket->payload);
+                            this->BufferLevel -= lastPacket->payload.size();
                             delete lastPacket;
-                            lastPacket->payload = NULL;
-                            lastPacket->nextFreeByte = NULL;
                         }
 
                         NewPESPacketFound(lastPacket, tsPacket);
@@ -236,10 +213,8 @@ namespace libr1k
                         // The queue is a FIFO so we can't just through the packet away
                         if (lastPacket)
                         {
-                            lastPacket->Started = false;
-                            lastPacket->Complete = false;
-                            this->BufferLevel -= (lastPacket->nextFreeByte - lastPacket->payload);
-                            delete lastPacket;
+                            this->BufferLevel -= lastPacket->payload.size();
+                            this->PESdata.pop_back();
                         }
                     }
                 }

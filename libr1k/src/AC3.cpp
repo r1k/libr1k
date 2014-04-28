@@ -622,11 +622,11 @@ namespace libr1k
 		// add data to decoder buffer
 		ac3Decoder->newData(PES_data, PESPacketSize);	
 
-		DecodeAC3Frame(buf->PTS);
+        DecodeFrame(&PES_data, &PESPacketSize);
 #endif
 	}
 
-	void AC3PacketHandler::DecodeAC3Frame(const uint64_t PTS)
+    bool AC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
 	{
 #if 0
         int return_val = au_ac3_t::AU_AC3_SYNC_NOT_FOUND;
@@ -749,6 +749,6 @@ namespace libr1k
 			OutputFile->WriteSample(0x0);
 		}
 #endif
-		return;
+		return false;
 	}
 }

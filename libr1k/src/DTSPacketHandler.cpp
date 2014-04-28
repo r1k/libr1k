@@ -237,13 +237,13 @@ namespace libr1k
 	{
 		// Read PES header
 		
-		unsigned char *PES_data = &(buf->payload[9]) + buf->payload[8]; // The start of the data is the number of bytes in the PES header length field
+		unsigned char *PES_data = buf->GetPESData(); // The start of the data is the number of bytes in the PES header length field
 																		// added to the first byte after the PES header length field
 		// Need to adjust PESPacketSize to make it just the payload size
-		unsigned int PESPacketSize = buf->nextFreeByte - PES_data;
+		unsigned int PESPacketSize = buf->GetPESDataLength();
 
 		// Decode each DTS frame within this PES packet
-		while (PESPacketSize && this->DecodeDTSFrame( &PES_data, &PESPacketSize )) 
+		while (PESPacketSize && this->DecodeFrame( &PES_data, &PESPacketSize )) 
 			;
 		if (PESPacketSize != 0)
 		{
@@ -252,15 +252,15 @@ namespace libr1k
 		}
 	}
 
-	bool DTSPacketHandler::DecodeDTSFrame( unsigned char **DTSFrame, unsigned int *BufferSize )
+    bool DTSPacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
 	{
 		int NumStereoPairsStuffed = 0;
 		// Check metadata and extract FSIZE/NBLKS so we know how much stuffing to add between consecutive DTS frames
-		DTSMetadata Metadata(*DTSFrame);
+		DTSMetadata Metadata(*Frame);
 		if (Metadata.SYNCWORD != DTS_SYNCWORD)
 		{
 			// This is not a DTS syncword
-			BufferSize = 0;
+            FrameSize = 0;
 			return false;
 		}
 		FrameCount++;
@@ -341,19 +341,19 @@ namespace libr1k
 		// Take the bytes of DTSFrame in pairs and write each one out as a sample
 		int samplesToWrite = (Metadata.FSIZE + 1) / 2; // We take care if there is an odd number of bytes below
 
-		if ((Metadata.FSIZE + 1) > *BufferSize)
+        if ((Metadata.FSIZE + 1) > *FrameSize)
 		{
-			samplesToWrite = (*BufferSize + 1) / 2; /* +1 to roundup when doing integer arithmetic */
+            samplesToWrite = (*FrameSize + 1) / 2; /* +1 to roundup when doing integer arithmetic */
 		}
 
 		samplesToWrite += samplesWritten; // The size of the AES header - the amount we have already written
-		unsigned char *source = *DTSFrame;
+		unsigned char *source = *Frame;
 		for (;(samplesWritten < samplesToWrite) && (samplesWritten < numSamples); samplesWritten++)
 		{
 			unsigned short temp = (source[0] << 8) | source[1];
 			OutputFile->WriteSample( temp );
 			source += 2;
-			(*BufferSize) -= 2;
+            (*FrameSize) -= 2;
 		}
 
 		if ((Metadata.FSIZE + 1) % 2)
@@ -363,11 +363,11 @@ namespace libr1k
 			{
 				OutputFile->WriteSample( (source[0] << 8) );
 				source++;
-				(*BufferSize) -= 2;
+                (*FrameSize) -= 2;
 			}
 		}
 
-		*DTSFrame = source;
+		*Frame = source;
 
 		// Pad out with samples depending on DTS Frame type
 

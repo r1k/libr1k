@@ -4,6 +4,7 @@
 #include "TransportPacket.h"
 #include "Types.h"
 #include <deque>
+#include <vector>
 using namespace std;
 
 namespace libr1k
@@ -16,33 +17,26 @@ namespace libr1k
 			PTS(0),
 			pesPacketLength(0),
 			payload(NULL),
-			nextFreeByte(NULL),
 			Started(false),
-			Complete(false),
-			bytesStored(0)
+			Complete(false)
 			{};
 		~PESPacket_t(void)
 		{
-			if (this->payload) delete this->payload;
 		}
 		unsigned int type;
 		unsigned long long PTS;
 		int	pesPacketLength;
-		unsigned char*	payload;
-		unsigned char*	nextFreeByte;
+		vector<unsigned char> payload;
 		bool Started;
 		bool Complete;
-		int bytesStored;
 
         void SetDataLength(const int PESPacketSize)
         {
-            if (payload != nullptr)
+            if (payload.size() != 0)
             {
-                delete[] payload;
+                payload.clear();
             }
-            payload = new uint8_t[PESPacketSize];
-
-            nextFreeByte = payload;
+            payload.reserve (PESPacketSize);
 
             pesPacketLength = PESPacketSize;
             Started = true;
@@ -50,16 +44,12 @@ namespace libr1k
 
 		int GetCurrentDataLength()
 		{
-			if (nextFreeByte && payload)
-			{
-				return nextFreeByte - payload;
-			}
-			return 0;
+            return payload.size();
 		}
 
         uint8_t *GetPESData()
         {
-            if (bytesStored > 10)
+            if (payload.size() > 10)
             {
                 // The start of the data is the number of bytes in the PES header length field
                 return &(payload[9]) + payload[8]; 
@@ -74,7 +64,7 @@ namespace libr1k
         {
             uint8_t* dataStart = GetPESData();
             if (dataStart != nullptr)
-                return nextFreeByte - dataStart;
+                return payload.size() - (dataStart - &payload[0]);
             else
                 return 0;
         }
@@ -88,8 +78,7 @@ namespace libr1k
 				s <= pesPacketLength - GetCurrentDataLength()
 			   )
 			{
-				memcpy(nextFreeByte, d, s);
-				nextFreeByte += s;
+                payload.insert(payload.end(), d, d + s);
 			}
 
             if (GetCurrentDataLength() < pesPacketLength)
@@ -104,29 +93,31 @@ namespace libr1k
 	};
 
     class TSPacketHandler
-	{
-	public:
-		TSPacketHandler( void ):
-			CurrentState( WaitForPesStart ), 
-			NextState( WaitForPesStart ),
-			BufferLevel(0),
-            ContinuityCount( 0xff ),
-			doubleCC(false) {};
+    {
+    public:
+        TSPacketHandler(void) :
+            CurrentState(WaitForPesStart),
+            NextState(WaitForPesStart),
+            BufferLevel(0),
+            ContinuityCount(0xff),
+            doubleCC(false) {};
 
-		~TSPacketHandler( void );
+        ~TSPacketHandler(void);
 
-		virtual void NextPacket( TransportPacket *tsPacket );
-		virtual void PCRTick ( unsigned long long PCR );
+        virtual void NextPacket(TransportPacket *tsPacket);
+        virtual void PCRTick(unsigned long long PCR);
 
-	protected:
-		
-		virtual bool			FindPESHeaderAndGetPTS(const uint8_t  *buf, unsigned long long *PTS);
-		virtual unsigned int	GetPESPacketSize(const uint8_t * const buf) const;
-		virtual bool			NewPESPacketFound(PESPacket_t *pPacket, TransportPacket *tsPacket);
-		virtual bool			ContinueLastPESPacket(PESPacket_t *pPacket, TransportPacket *tsPacket);
+    protected:
 
-		virtual void			PESDecode ( PESPacket_t *buf ) = 0;
-		virtual bool            CheckCCError ( unsigned int cc );
+        virtual bool			FindPESHeaderAndGetPTS(const uint8_t  *buf, unsigned long long *PTS);
+        virtual unsigned int	GetPESPacketSize(const uint8_t * const buf) const;
+        virtual bool			NewPESPacketFound(PESPacket_t *pPacket, TransportPacket *tsPacket);
+        virtual bool			ContinueLastPESPacket(PESPacket_t *pPacket, TransportPacket *tsPacket);
+
+        virtual void			PESDecode(PESPacket_t *buf);
+        virtual bool            CheckCCError(unsigned int cc);
+
+        virtual bool            DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
 
 		enum PacketProcessStateMachine {WaitForPesStart, WaitForPESData, PESDataError, CCError} CurrentState, NextState;
 

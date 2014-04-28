@@ -106,10 +106,10 @@ namespace libr1k
 	{
 		// Read PES header
 		
-		unsigned char *PES_data = &(buf->payload[9]) + buf->payload[8]; // The start of the data is the number of bytes in the PES header length field
+		unsigned char *PES_data = buf->GetPESData(); // The start of the data is the number of bytes in the PES header length field
 																		// added to the first byte after the PES header length field
 		// Need to adjust PESPacketSize to make it just the payload size
-		unsigned int PESPacketSize = buf->nextFreeByte - PES_data;
+        unsigned int PESPacketSize = buf->GetPESDataLength();
 
 		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "LPCM - Frame %d", this->FrameCount );
 		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );

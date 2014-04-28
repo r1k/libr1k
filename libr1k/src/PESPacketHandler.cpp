@@ -89,10 +89,10 @@ namespace libr1k
 		// Read PES header
 		// Here we have a full PES packet just dump it out.
 
-		const unsigned char * const PES_data = &(buf->payload[9]) + buf->payload[8]; // The start of the data is the number of bytes in the PES header length field
+		const unsigned char * const PES_data = buf->GetPESData(); // The start of the data is the number of bytes in the PES header length field
 																		// added to the first byte after the PES header length field
 		// Need to adjust PESPacketSize to make it just the payload size
-		const unsigned int PESPacketSize = buf->nextFreeByte - PES_data;
+		const unsigned int PESPacketSize = buf->GetPESDataLength();
 
 		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "PESDump - Frame");
 		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );
@@ -115,8 +115,8 @@ namespace libr1k
 		// Decode each ESDump frame within this PES packet
 		if (this->outStream)
 		{
-			unsigned int size = buf->nextFreeByte - buf->payload;
-			this->outStream->write((char*)buf->payload, size);
+			unsigned int size = buf->payload.size();
+			this->outStream->write((char*)&buf->payload[0], size);
 		}
 
 		if (this->filePerPes && this->outStream)
