@@ -572,7 +572,6 @@ namespace libr1k
 		:
 		FrameCount(0),
 		DebugOn(Debug_on),
-        ac3Decoder(new AC3Decoder()),
 		outStream(*str),
 		LogFile(nullptr),
 		firstPTS(0),
@@ -581,14 +580,15 @@ namespace libr1k
 		stream_id = (char)0xbd;
 		//OutputFile = new WAVFile(*str, &(this->WAVParams));
 
+        shared_ptr<AC3Decoder> ac3dec = shared_ptr<AC3Decoder>(new AC3Decoder(shared_ptr<au_ac3_t>(new au_ac3_t())));
+        esDecoder = ac3dec;
+
 		if (DebugOn)
 		{
             LogFile = std::shared_ptr<Log>(new Log(Log::MIN_LOG_LEVEL));
 		}
-        initDecoder();
-        ac3Decoder->initDecoder();
 
-		ac3Decoder->ac3_decoder->write_csv_header(*outStream);
+         ac3dec->GetDecoder()->write_csv_header(*outStream);
 
         
 	}
