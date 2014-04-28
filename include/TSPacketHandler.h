@@ -3,6 +3,7 @@
 #include "libr1k.h"
 #include "TransportPacket.h"
 #include "Types.h"
+#include "esPacketDecoder.h"
 #include <deque>
 #include <vector>
 using namespace std;
@@ -100,12 +101,18 @@ namespace libr1k
             NextState(WaitForPesStart),
             BufferLevel(0),
             ContinuityCount(0xff),
-            doubleCC(false) {};
+            doubleCC(false),
+            esDecoder(nullptr) {};
 
         ~TSPacketHandler(void);
 
         virtual void NextPacket(TransportPacket *tsPacket);
         virtual void PCRTick(unsigned long long PCR);
+
+        shared_ptr<esPacketDecoder> GetDecoder()
+        {
+            return static_pointer_cast<esPacketDecoder>(esDecoder);
+        }
 
     protected:
 
@@ -127,5 +134,7 @@ namespace libr1k
 		bool doubleCC;
 
 		deque<PESPacket_t*> PESdata;
+ 
+        shared_ptr<esPacketDecoder> esDecoder;
 	};
 }

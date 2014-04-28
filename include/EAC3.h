@@ -52,8 +52,13 @@ namespace libr1k
         EAC3Decoder() {}
         virtual ~EAC3Decoder() {}
 
-    protected:
+        shared_ptr<au_eac3_t> GetDecoder()
+        {
+            return std::static_pointer_cast<au_eac3_t>(au_frame_decoder);
+        }
 
+    protected:
+        
     private:
         
     };
@@ -71,7 +76,13 @@ namespace libr1k
 
 		int FrameCount;
 
-	protected:
+        shared_ptr<EAC3Decoder> GetDecoder()
+        {
+            return static_pointer_cast<EAC3Decoder>(esDecoder);
+        }
+
+    protected:
+
 	private:
 
 	};

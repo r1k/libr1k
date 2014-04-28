@@ -572,7 +572,7 @@ namespace libr1k
 		:
 		FrameCount(0),
 		DebugOn(Debug_on),
-		ac3Decoder(nullptr),
+        ac3Decoder(new AC3Decoder()),
 		outStream(*str),
 		LogFile(nullptr),
 		firstPTS(0),
@@ -585,10 +585,12 @@ namespace libr1k
 		{
             LogFile = std::shared_ptr<Log>(new Log(Log::MIN_LOG_LEVEL));
 		}
+        initDecoder();
+        ac3Decoder->initDecoder();
 
-        ac3Decoder = std::make_shared<au_ac3_t>(LogFile);
+		ac3Decoder->ac3_decoder->write_csv_header(*outStream);
 
-		ac3Decoder->write_csv_header(*outStream);
+        
 	}
 
 	void AC3PacketHandler::SetDebugOutput(bool On)

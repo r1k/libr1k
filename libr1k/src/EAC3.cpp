@@ -428,9 +428,10 @@ namespace libr1k
 
 	EAC3PacketHandler::EAC3PacketHandler(ofstream **str, bool Debug_on)
 		:
-        AC3PacketHandler(str, Debug_on)
+        AC3PacketHandler(str, Debug_on),
+        eac3Decoder(new EAC3Decoder())
 	{
-		
+        ac3Decoder = eac3Decoder;
 	}
 
 
@@ -447,16 +448,15 @@ namespace libr1k
         if (!PESDataSize)
             return;
 
-		DecodeFrame(&PES_data, &PESDataSize);
+        while (DecodeFrame(&PES_data, &PESDataSize)) 
+        {}
 
 	}
 
     bool EAC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
-	{
+    {
 #if 0
-        int return_val = au_ac3_t::AU_AC3_SYNC_NOT_FOUND;
-		
-        while ((return_val = ac3Decoder->FindSyncWord()) == au_ac3_t::AU_AC3_OKAY)
+        while ((return_val = decoder->FindSyncWord()) == au_ac3_t::AU_AC3_OKAY)
 		{
 			if (PacketSpansPES)
 			{
@@ -489,7 +489,7 @@ namespace libr1k
 		}
 
 		return;
-#endif		
+#endif	
 #if 0
 		int NumStereoPairsStuffed = 0;
 		// Check metadata and extract FSIZE/NBLKS so we know how much stuffing to add between consecutive DTS frames

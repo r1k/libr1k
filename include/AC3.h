@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include "pcr.h"
 #include "Log.h"
 
@@ -112,13 +113,22 @@ namespace libr1k
  
     class AC3Decoder : public esPacketDecoder
     {
+
     public:
-        AC3Decoder() :
-            ac3_frame(nullptr) {}
+        AC3Decoder(shared_ptr<au_ac3_t> frame_dec = nullptr)
+        {
+
+        }
+
         virtual ~AC3Decoder() {}
 
-    protected:
-        shared_ptr<au_ac3_t> ac3_frame;
+        virtual bool FindSyncWord();
+
+        shared_ptr<au_ac3_t> GetDecoder()
+        { 
+            return static_pointer_cast<au_ac3_t>(au_frame_decoder);
+        }
+        
 
     private:
 
@@ -137,12 +147,15 @@ namespace libr1k
 
 		int FrameCount;
 
+        shared_ptr<AC3Decoder> GetDecoder()
+        {
+            return static_pointer_cast<AC3Decoder>(esDecoder);
+        }
+
 	protected:
 
         ofstream *outStream;
-
         uint64_t firstPTS;
-        shared_ptr<au_ac3_t> ac3Decoder;
 
         bool DebugOn;
         bool PacketSpansPES;

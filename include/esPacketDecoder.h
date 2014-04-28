@@ -12,8 +12,13 @@ namespace libr1k
 {
     class au_esPacket_t : public _no_copy
     {
+        // Stores only a pointer to the data, data must be maintained elsewhere.
     public:
         au_esPacket_t(shared_ptr<Log> log = nullptr) : logger(log) {}
+        au_esPacket_t(const uint8_t *dat, const int len, shared_ptr<Log> log = nullptr) 
+            : 
+            logger(log), data(data), data_length(len) {}
+
         virtual ~au_esPacket_t() {}
 
         virtual ostream& write(std::ostream &os) = 0;
@@ -37,6 +42,10 @@ namespace libr1k
 
     class esPacketDecoder : public _no_copy
     {
+        // Maintains a queue of smart pointers to data blocks, which it creates if they
+        // don't already exist.
+
+        // Push buffers of elementary stream data to this class via addData member functions
     public:
 
         esPacketDecoder(shared_ptr<Log> log = nullptr) : 
@@ -71,6 +80,8 @@ namespace libr1k
             _data.push(pData);
         }
 
+        virtual shared_ptr<au_esPacket_t> GetDecoder() { return au_frame_decoder; }
+        
     protected:
         shared_ptr<Log> logger;
         std::queue<shared_ptr<DataBuffer_u8>> _data;
