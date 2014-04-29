@@ -6,19 +6,19 @@
 #endif
 namespace libr1k
 {
-	ESDumpPacketHandler::ESDumpPacketHandler(ofstream **str, bool Debug_on)
+	ESDumpPacketHandler::ESDumpPacketHandler(ofstream *str, bool Debug_on)
 	{
-		this->outStream = *str;
-		this->stream_id = -1;
+		outStream = str;
+		stream_id = -1;
 
-		this->DebugOn = Debug_on;
-		if (this->DebugOn)
+		DebugOn = Debug_on;
+		if (DebugOn)
 		{
-			this->LogFile = new Log();
+			LogFile = new Log();
 		}
 		else
 		{
-			this->LogFile = NULL;
+			LogFile = NULL;
 		}
 
 	}

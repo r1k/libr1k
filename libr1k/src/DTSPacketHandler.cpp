@@ -178,16 +178,16 @@ namespace libr1k
 	  return stream;
 	}
 
-	DTSPacketHandler::DTSPacketHandler(ofstream **str, bool Debug_on)
+	DTSPacketHandler::DTSPacketHandler(ofstream *str, bool Debug_on)
 	{
-		outStream = *str;
+		outStream = str;
 		stream_id = (char)0xbd;
 
 		WAVParams.bit_depth = 16;
 		WAVParams.num_channels = 2;
 		WAVParams.SamplesPerSec = 48000;
 
-		OutputFile = new WAVFile(*str, &(WAVParams));
+		OutputFile = new WAVFile(str, &(WAVParams));
 		FrameCount = 0;
 		DebugOn = Debug_on;
 		if (DebugOn)

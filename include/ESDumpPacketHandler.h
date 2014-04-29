@@ -19,7 +19,7 @@ namespace libr1k
 	{
 	public:
 		
-		ESDumpPacketHandler(ofstream **str, bool Debug_on = false);
+		ESDumpPacketHandler(ofstream *str, bool Debug_on = false);
 		ESDumpPacketHandler(const char *str, bool Debug_on = false);
 		~ESDumpPacketHandler(void);
 

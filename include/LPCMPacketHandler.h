@@ -39,7 +39,7 @@ namespace libr1k
 	{
 	public:
 
-		LPCMPacketHandler(ofstream **str, bool Debug_on = false);
+		LPCMPacketHandler(ofstream *str, bool Debug_on = false);
 		~LPCMPacketHandler(void);
 
 		virtual bool DecodeLPCMFrame( unsigned char **LPCMFrame, unsigned int *BufferSize  );

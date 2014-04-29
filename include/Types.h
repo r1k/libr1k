@@ -9,3 +9,5 @@
 typedef uint64_t ulong64_t;
 typedef int64_t long64_t;
 #endif
+
+typedef bool flag_t;

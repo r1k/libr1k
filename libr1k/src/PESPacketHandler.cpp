@@ -5,9 +5,9 @@
 using namespace std;
 namespace libr1k
 {
-	PESPacketHandler::PESPacketHandler(ofstream **str, bool Debug_on)
+	PESPacketHandler::PESPacketHandler(ofstream *str, bool Debug_on)
 		:
-		outStream(*str),
+		outStream(str),
 		filePerPes(false),
 		index(0),
 		DebugOn(Debug_on)
@@ -31,55 +31,55 @@ namespace libr1k
 		DebugOn(Debug_on)
 	{		
 		stream_id = -1;
-		memset( this->base_filename, '\0', MAX_FILENAME_LENGTH);
+		memset( base_filename, '\0', MAX_FILENAME_LENGTH);
 #ifdef WIN32
-		strncpy_s(this->base_filename, str, MAX_FILENAME_LENGTH);
+		strncpy_s( base_filename, str, MAX_FILENAME_LENGTH);
 #else
 		strncpy(this->base_filename, str, MAX_FILENAME_LENGTH);
 #endif
-		if (this->DebugOn)
+		if (DebugOn)
 		{
-			this->LogFile = new Log();
+			LogFile = new Log();
 		}
 		else
 		{
-			this->LogFile = NULL;
+			LogFile = NULL;
 		}
 	}
 
 
 	PESPacketHandler::~PESPacketHandler(void)
 	{
-		if (this->OutputFile)
-			delete this->OutputFile;
+		if (OutputFile)
+			delete OutputFile;
 		if (this->LogFile)
-			delete this->LogFile;
+			delete LogFile;
 	}
 
 	void PESPacketHandler::SetDebugOutput(bool On)
 	{
-		if (this->DebugOn != On)
+		if (DebugOn != On)
 		{
 			if (On)
 			{
 				// Was off now need to turn it on
-				if (this->LogFile != NULL)
+				if (LogFile != NULL)
 				{
 					// this should have been null because we are not logging, so we probably should delete this
-					delete this->LogFile;
+					delete LogFile;
 				}
-				this->LogFile = new Log();
-				this->DebugOn = On;
+				LogFile = new Log();
+				DebugOn = On;
 			}
 			else
 			{
 				// Was on now need to turn it off
-				if (this->LogFile != NULL)
+				if (LogFile != NULL)
 				{
 					// this should have been null because we are not logging, so we probably should delete this
-					delete this->LogFile;
+					delete LogFile;
 				}
-				this->DebugOn = On;
+				DebugOn = On;
 			}
 		}
 	}
@@ -94,22 +94,22 @@ namespace libr1k
 		// Need to adjust PESPacketSize to make it just the payload size
 		const unsigned int PESPacketSize = buf->GetPESDataLength();
 
-		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "PESDump - Frame");
-		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );
+		LogFile->AddMessage( Log::MAX_LOG_LEVEL, "PESDump - Frame");
+		LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );
 
 		// if this->outStream is NULL then we are doing 1 pes packet per file
-		if (this->filePerPes)
+		if (filePerPes)
 		{
 			char combinedFilename[2*MAX_FILENAME_LENGTH];
-			this->index++;
+			index++;
 
 #ifdef WIN32
-			sprintf_s(combinedFilename, "%s_num_%08u_pts_%llu.pes", this->base_filename, this->index, buf->PTS);
+			sprintf_s(combinedFilename, "%s_num_%08u_pts_%llu.pes", base_filename, index, buf->PTS);
 #else
-			sprintf(combinedFilename, "%s_num_%08u_pts_%llu.pes", this->base_filename, this->index, buf->PTS);
+			sprintf(combinedFilename, "%s_num_%08u_pts_%llu.pes", base_filename, index, buf->PTS);
 #endif
 
-			this->outStream = new ofstream(combinedFilename, ios::binary | ios::out);
+			outStream = new ofstream(combinedFilename, ios::binary | ios::out);
 		}
 
 		// Decode each ESDump frame within this PES packet

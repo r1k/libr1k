@@ -46,58 +46,58 @@ namespace libr1k
 		}
 	}
 
-	LPCMPacketHandler::LPCMPacketHandler(ofstream **str, bool Debug_on)
+	LPCMPacketHandler::LPCMPacketHandler(ofstream *str, bool Debug_on)
 	{
-		this->outStream = *str;
-		this->stream_id = (char) 0xbd;
+		outStream = str;
+		stream_id = (char) 0xbd;
 
-		this->WAVParams.bit_depth = 16;
-		this->WAVParams.num_channels = 2;
-		this->WAVParams.SamplesPerSec = 48000;
+		WAVParams.bit_depth = 16;
+		WAVParams.num_channels = 2;
+		WAVParams.SamplesPerSec = 48000;
 
-		this->OutputFile = new WAVFile(*str, &(this->WAVParams));
-		this->FrameCount = 0;
-		this->DebugOn = Debug_on;
-		if (this->DebugOn)
+		OutputFile = new WAVFile(str, &(WAVParams));
+		FrameCount = 0;
+		DebugOn = Debug_on;
+		if (DebugOn)
 		{
-			this->LogFile = new Log();
+			LogFile = new Log();
 		}
 		else
 		{
-			this->LogFile = NULL;
+			LogFile = NULL;
 		}
 	}
 
 
 	LPCMPacketHandler::~LPCMPacketHandler(void)
 	{
-		delete this->OutputFile;
+		delete OutputFile;
 	}
 
 	void LPCMPacketHandler::SetDebugOutput(bool On)
 	{
-		if (this->DebugOn != On)
+		if (DebugOn != On)
 		{
 			if (On)
 			{
 				// Was off now need to turn it on
-				if (this->LogFile != NULL)
+				if (LogFile != NULL)
 				{
 					// this should have been null because we are not logging, so we probably should delete this
-					delete this->LogFile;
+					delete LogFile;
 				}
-				this->LogFile = new Log();
-				this->DebugOn = On;
+				LogFile = new Log();
+				DebugOn = On;
 			}
 			else
 			{
 				// Was on now need to turn it off
-				if (this->LogFile != NULL)
+				if (LogFile != NULL)
 				{
 					// this should have been null because we are not logging, so we probably should delete this
-					delete this->LogFile;
+					delete LogFile;
 				}
-				this->DebugOn = On;
+				DebugOn = On;
 			}
 		}
 	}
@@ -111,10 +111,10 @@ namespace libr1k
 		// Need to adjust PESPacketSize to make it just the payload size
         unsigned int PESPacketSize = buf->GetPESDataLength();
 
-		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "LPCM - Frame %d", this->FrameCount );
-		this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );
+		LogFile->AddMessage( Log::MAX_LOG_LEVEL, "LPCM - Frame %d", this->FrameCount );
+		LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\tPTS - %d", buf->PTS );
 		// Decode each LPCM frame within this PES packet
-		while (PESPacketSize && this->DecodeLPCMFrame( &PES_data, &PESPacketSize )) 
+		while (PESPacketSize && DecodeLPCMFrame( &PES_data, &PESPacketSize )) 
 			;
 		if (PESPacketSize != 0)
 		{
@@ -133,15 +133,15 @@ namespace libr1k
 
 		int NumStereoPairsStuffed = AESHeader.audioPacketSize / (AESHeader.numChannels * ((AESHeader.bitDepth + 4) + 7 / 8));  // +7 to make sure we round up
 
-		this->FrameCount++;
+		FrameCount++;
 
-		if (this->DebugOn)
+		if (DebugOn)
 		{
-			this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - audio_packet_size %d", AESHeader.audioPacketSize );
-			this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - number channels %d", AESHeader.numChannels );
-			this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - channel_identification %d", AESHeader.channelID );
-			this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - bits per sample %d", AESHeader.bitDepth);
-			this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - alignement bits %d", AESHeader.alignmentBits );
+			LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - audio_packet_size %d", AESHeader.audioPacketSize );
+			LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - number channels %d", AESHeader.numChannels );
+			LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - channel_identification %d", AESHeader.channelID );
+			LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - bits per sample %d", AESHeader.bitDepth);
+			LogFile->AddMessage( Log::MAX_LOG_LEVEL, "\t\tAES Header - alignement bits %d", AESHeader.alignmentBits );
 		}
 
 		int numSamples = 2 * NumStereoPairsStuffed;
@@ -159,7 +159,7 @@ namespace libr1k
 			switch(AESHeader.bitDepth)
 			{
 				case 16:
-					this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "16 bit Not yet implemented");
+					LogFile->AddMessage( Log::MAX_LOG_LEVEL, "16 bit Not yet implemented");
 					break;
 				case 20:
 					{
@@ -173,16 +173,16 @@ namespace libr1k
 						sample = sample & 0x0fffff; // strip flags
 						sample = sample & 0x000ffff0; // convert to 16 bit
 						sample = sample << 12; // Left justify the sample
-						this->OutputFile->WriteSample( sample );
+						OutputFile->WriteSample( sample );
 						source += 3;
 						(*BufferSize) -= 3;
 					}
 					break;
 				case 24:
-					this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "24 bit Not yet implemented");
+					LogFile->AddMessage( Log::MAX_LOG_LEVEL, "24 bit Not yet implemented");
 					break;
 				default:
-					this->LogFile->AddMessage( Log::MAX_LOG_LEVEL, "Unrecognised bit depth");
+					LogFile->AddMessage( Log::MAX_LOG_LEVEL, "Unrecognised bit depth");
 					break;
 			}
 		}

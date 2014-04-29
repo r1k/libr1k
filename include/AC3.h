@@ -115,14 +115,47 @@ namespace libr1k
     {
 
     public:
-        AC3Decoder(shared_ptr<au_ac3_t> frame_dec = nullptr)
-        {
 
+        // For instanciation e.g.
+        // new AC3Decoder(esPacketDecoder::CREATE_DECODER)
+
+        AC3Decoder(const flag_t createDecoder) :
+            esPacketDecoder()
+        {
+            au_frame_decoder = shared_ptr<au_ac3_t>(new au_ac3_t());
         }
+        
+        AC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
+            esPacketDecoder(pData, dataLength)
+        {
+            au_frame_decoder = shared_ptr<au_ac3_t>(new au_ac3_t());
+        }
+        AC3Decoder(shared_ptr<DataBuffer_u8> const pData, const flag_t createDecoder) :
+            esPacketDecoder(pData)
+        {
+            au_frame_decoder = shared_ptr<au_ac3_t>(new au_ac3_t());
+        }
+
+        // Constructors to call when inheriting from this class to make sure decoder isn't created 
+        AC3Decoder() :
+            esPacketDecoder() { }
+
+        AC3Decoder(uint8_t * const pData, const int dataLength) :
+            esPacketDecoder(pData, dataLength) { }
+
+        AC3Decoder(shared_ptr<DataBuffer_u8> const pData) :
+            esPacketDecoder(pData) { }
+
 
         virtual ~AC3Decoder() {}
 
-        virtual bool FindSyncWord();
+        virtual bool FindSyncWord() { return false; }
+
+        bool init()
+        {
+            if (au_frame_decoder == nullptr)
+                au_frame_decoder = std::shared_ptr<au_ac3_t>(new au_ac3_t());
+        }
 
         shared_ptr<au_ac3_t> GetDecoder()
         { 
@@ -137,7 +170,7 @@ namespace libr1k
     class AC3PacketHandler : public TSPacketHandler
 	{
 	public:
-		AC3PacketHandler(ofstream **str, bool Debug_on = false);
+		AC3PacketHandler(ofstream *str, bool Debug_on = false);
         ~AC3PacketHandler(void) {}
 
         virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
@@ -146,6 +179,16 @@ namespace libr1k
 		void SetDebugOutput(bool On);
 
 		int FrameCount;
+
+        bool init()
+        {
+            if (esDecoder == nullptr)
+                esDecoder = std::shared_ptr<AC3Decoder>(new AC3Decoder(esPacketDecoder::CREATE_DECODER));
+
+            esDecoder->GetDecoder()->write_csv_header(*outStream);
+
+            return (esDecoder != nullptr);
+        }
 
         shared_ptr<AC3Decoder> GetDecoder()
         {

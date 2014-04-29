@@ -40,8 +40,12 @@ namespace libr1k
     private:
     };
 
+    
     class esPacketDecoder : public _no_copy
     {
+    public:
+        static const bool CREATE_DECODER;
+        
         // Maintains a queue of smart pointers to data blocks, which it creates if they
         // don't already exist.
 

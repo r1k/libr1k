@@ -109,6 +109,11 @@ namespace libr1k
         virtual void NextPacket(TransportPacket *tsPacket);
         virtual void PCRTick(unsigned long long PCR);
 
+        virtual bool init()
+        {
+            return (esDecoder != nullptr);
+        }
+
         shared_ptr<esPacketDecoder> GetDecoder()
         {
             return static_pointer_cast<esPacketDecoder>(esDecoder);

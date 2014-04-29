@@ -20,7 +20,7 @@ namespace libr1k
 	{
 	public:
 
-		PESPacketHandler(ofstream **str, bool Debug_on = false);
+		PESPacketHandler(ofstream *str, bool Debug_on = false);
 		PESPacketHandler(const char *str, bool Debug_on = false);
 		~PESPacketHandler(void);
 

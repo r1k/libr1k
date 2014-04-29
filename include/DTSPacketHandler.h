@@ -53,7 +53,7 @@ namespace libr1k
     class DTSPacketHandler : public TSPacketHandler
 	{
 	public:
-		DTSPacketHandler(ofstream **str, bool Debug_on = false);
+		DTSPacketHandler(ofstream *str, bool Debug_on = false);
 		~DTSPacketHandler(void);
 
         virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);

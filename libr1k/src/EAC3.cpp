@@ -426,29 +426,31 @@ namespace libr1k
 	}
 #endif
 
-	EAC3PacketHandler::EAC3PacketHandler(ofstream **str, bool Debug_on)
+	EAC3PacketHandler::EAC3PacketHandler(ofstream *str, bool Debug_on)
 		:
-        AC3PacketHandler(str, Debug_on),
-        eac3Decoder(new EAC3Decoder())
+        AC3PacketHandler(str, Debug_on)
 	{
-        ac3Decoder = eac3Decoder;
+        
 	}
 
 
 	void EAC3PacketHandler::PESDecode(PESPacket_t *buf)
 	{
-
+        // Need to use all the bytes in the PES packet or they will
+        // 
 		// Read PES header
 
 		uint8_t *PES_data = buf->GetPESData();
 		//// added to the first byte after the PES header length field
 		//// Need to adjust PESPacketSize to make it just the payload size
-		unsigned int PESDataSize = buf->GetPESDataLength();
+        unsigned int PES_data_size = buf->GetPESDataLength();
 
-        if (!PESDataSize)
+        if (!PES_data_size)
             return;
 
-        while (DecodeFrame(&PES_data, &PESDataSize)) 
+        GetDecoder()->addData(PES_data, PES_data_size);
+
+        while (DecodeFrame(&PES_data, &PES_data_size))
         {}
 
 	}
