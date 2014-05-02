@@ -79,7 +79,7 @@ namespace libr1k
     class WAVFile : public _no_copy
 	{
 	public:
-		WAVFile(ofstream *outstr, wav_params *wv_params);
+        WAVFile(ofstream *outstr, wav_params &wv_params);
 		WAVFile(ifstream *instr);
 		~WAVFile ();
 
@@ -111,7 +111,7 @@ namespace libr1k
 
 		ofstream * const output;
 		ifstream * const input;
-		wav_params local_params;
+        wav_params local_params;
 
 		
 		int ByteShift;

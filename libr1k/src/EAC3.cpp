@@ -1,3 +1,4 @@
+#include "AC3.h"
 #include "EAC3.h"
 #include "bitOperators.h"
 #include "crc.h"
@@ -13,49 +14,63 @@
 namespace libr1k
 {
 	au_eac3_t::au_eac3_t(shared_ptr<Log> log) :
-        au_ac3_t(log)
+        au_ac3_t(log), nblkscod(0), frmsiz(0), strmtyp(0), substreamid(0)
 	{
 	}
 
     au_eac3_t::au_eac3_t(const uint8_t * const buf, const int bufSize, shared_ptr<Log> log) :
-        au_ac3_t(buf, bufSize, log)
+        au_ac3_t(buf, bufSize, log), nblkscod(0), frmsiz(0), strmtyp(0), substreamid(0)
 	{
 	}
 
-    bool au_eac3_t::preProcessHeader(const uint8_t *data, const int data_length, int& frame_length) const
+    au_eac3_t::au_eac3_t(DataBuffer<uint8_t> * const buffer, shared_ptr<Log> log) :
+        au_ac3_t(buffer, log), nblkscod(0), frmsiz(0), strmtyp(0), substreamid(0)
+    {
+    }
+
+    bool au_eac3_t::preProcessHeader()
     {
         if (data_length < 5)
             return false;
 
-        if (*data == BYTE_1(syncword) && *(data + 1) == BYTE_0(syncword))
+        if (*data == BYTE_1(SYNCWORD) && *(data + 1) == BYTE_0(SYNCWORD))
         {
             bool error_detected = false;
-            const unsigned int fscod = 0;
-            const unsigned int frmsizcod = 0;
-            const int max_frame_length = 0;
-
-            if (fscod > 2)
+            const uint8_t *ptr = data + 2;
+            bitStreamReader bsr(ptr, data_length);
+            bsr.GetXBits(&strmtyp, 2);
+            bsr.GetXBits(&substreamid, 3);
+            bsr.GetXBits(&frmsiz, 11);
+            bsr.GetXBits(&fscod, 2);
+            
+            if ((frmsiz + 1) > MAX_FRAME_LEN)
             {
-                if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_eac3_t::%s - fscod %u illegal value", __FUNCTION__, fscod);
-                error_detected = true;
-            }
-
-            if (frmsizcod > frmsizcod_max)
-            {
-                if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_eac3_t::%s - frmsizcod %u > max(%d)", __FUNCTION__, frmsizcod, frmsizcod_max);
+                if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_eac3_t::%s - frmsiz %u > max(%d)", __FUNCTION__, frmsiz, MAX_FRAME_LEN);
                 error_detected = true;
             }
 
             if (!error_detected)
             {
-                frame_length = 0;
+                frame_length = frmsiz + 1; 
             }
-            if (error_detected || frame_length < 0 || frame_length > max_frame_length)
+
+            if (error_detected || frame_length < 0 || frame_length > MAX_FRAME_LEN)
             {
                 if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_eac3_t::%s - strange frame size (%d bytes)this is going to cause problems", __FUNCTION__, frame_length);
                 // set bytesPerSyncframe to something small to try and interpret the header but we then jump it and try to resync 
                 return false;
             }
+
+            // for EAC3 need to find number of blocks contained within this frame.
+            if (fscod == 0x03)
+            {
+                nblkscod = 0x3;
+            }
+            else
+            {
+                bsr.GetXBits(&nblkscod, 2);
+            }
+
             return true;
         }
         return false;
@@ -70,120 +85,13 @@ namespace libr1k
     }
 
 	void au_eac3_t::InterpretFrame()
-	{
-		if (data == nullptr)
-		{
-			return;
-		}
-		const uint8_t *ptr = data;
-
-		CRC1 = *(ptr + 2) << 8 | *(ptr + 3);
-		ptr += 4;
-        bitStreamReader bsr(ptr, data_length);
-		bsr.GetXBits(&fscod, 2);
-		bsr.GetXBits(&frmsizcod, 6);
-		bsr.GetXBits(&bsid, 5);
-		bsr.GetXBits(&bsmod, 3);
-		bsr.GetXBits(&acmod, 3);
-
-		if ((acmod & 0x01) && (acmod != 0x0))
-		{
-			bsr.GetXBits(&cmixlev, 2);
-		}
-		else if (acmod & 0x04)
-		{
-			bsr.GetXBits(&surmixlev, 2);
-		}
-		else if (acmod == 0x02)
-		{
-			bsr.GetXBits(&dsurmod, 2);
-		}
-
-		bsr.GetXBits(&lfeon, 1);
-
-		bsr.GetXBits(&dialnorm, 5);
-
-		bsr.GetXBits(&compre, 1);
-		if (compre)
-		{
-			bsr.GetXBits(&compr, 8);
-		}
-
-		bsr.GetXBits(&langcode, 1);
-		if (langcode)
-		{
-			bsr.GetXBits(&langcod, 8);
-		}
-
-		bsr.GetXBits(&audprodie, 1);
-		if (audprodie)
-		{
-			bsr.GetXBits(&mixlevel, 5);
-			bsr.GetXBits(&roomtyp, 2);
-		}
-
-		if (acmod == 0)
-		{
-			bsr.GetXBits(&dialnorm2, 5);
-			bsr.GetXBits(&compr2e, 1);
-			if (compr2e)
-			{
-				bsr.GetXBits(&compr2, 8);
-			}
-			bsr.GetXBits(&langcod2e, 1);
-			if (langcod2e)
-			{
-				bsr.GetXBits(&langcod2, 8);
-			}
-
-			bsr.GetXBits(&audprodi2e, 1);
-			if (audprodi2e)
-			{
-				bsr.GetXBits(&mixlevel2, 5);
-				bsr.GetXBits(&roomtyp2, 2);
-			}
-		}
-		
-		bsr.GetXBits(&copyrightb, 1);
-		bsr.GetXBits(&origbs, 1);
-		bsr.GetXBits(&xbsi1e, 1);
-		if (xbsi1e)
-		{
-			bsr.GetXBits(&dmixmod, 2);
-			bsr.GetXBits(&ltrtcmixlev, 3);
-			bsr.GetXBits(&ltrtsurmixlev, 3);
-			bsr.GetXBits(&lorocmixlev, 3);
-			bsr.GetXBits(&lorosurmixlev, 3);
-		}
-		bsr.GetXBits(&xbsi2e, 1);
-		if (xbsi2e)
-		{
-			bsr.GetXBits(&dsurexmod, 2);
-			bsr.GetXBits(&dheadphonmod, 2);
-			bsr.GetXBits(&adconvtyp, 1);
-			bsr.GetXBits(&xbsi2, 8);
-			bsr.GetXBits(&encinfo, 1);
-		}
-		bsr.GetXBits(&addbsie, 1);
-		if (addbsie)
-		{
-			bsr.GetXBits(&addbsil, 6);
-
-			/* should loop here to consume number of additional bytes */
-			for (unsigned int i = 0; i < (addbsil + 1); i++)
-			{
-				bsr.GetXBits(&addbsi[i], 8);
-			}
-		}
-
-	    
-
+	{		
 		this->syncProcessed = true;
 	}
 
 	ostream& au_eac3_t::write_csv_header(std::ostream &os)
 	{
-		os << "PTS(Hex), PTS(Dec), time from start, syncword, CRC1, fscod,frmsizcod, bitrate,bsid,bsmod,acmod,lfeon,dialnorm,compre,langcode,audprodie," << endl;
+		os << "PTS(Hex), PTS(Dec), time from start, syncword, CRC1, frmsiz, bsid,bsmod,acmod,lfeon,dialnorm,compre,langcode,audprodie," << endl;
 		return os;
 	}
 
@@ -201,16 +109,12 @@ namespace libr1k
 		os << ",";
 
 		os.setf(std::ios::hex, std::ios::basefield);
-		os << syncword << ",";
+		os << SYNCWORD << ",";
 		streamsize wdth = os.width();
 		os.fill('0');
 		os << setw(4) << CRC1 << ",";
 		os.fill(' ');
-		os << fscod << ",";
-		os << frmsizcod << ",";
-		os.setf(std::ios::dec, std::ios::basefield);
-		os << bitrate_table[frmsizcod] << ",";
-		os.setf(std::ios::hex, std::ios::basefield);
+		os << frmsiz << ",";
 		os << bsid << ",";
 		os << bsmod << ",";
 		os << acmod << ",";
@@ -230,11 +134,7 @@ namespace libr1k
 			os << "EAC3 Packet found - PTS " << PTS << "\n";
 			os.setf(std::ios::hex, std::ios::basefield);
 			os << "\tCRC1      : " << CRC1 << "\n";
-			os << "\tfscod     : " << fscod << "\t" << fscod_str[fscod] << "\n";
-			os << "\tfrmsizcod : " << frmsizcod << "\t framesize (words): " <<  frmsizcod_table[fscod][frmsizcod] << "\n";
-			os.setf(std::ios::dec, std::ios::basefield);
-			os << "\tbit-rate  : " << bitrate_table[frmsizcod] << "kbps\n";
-			os.setf(std::ios::hex, std::ios::basefield);
+			os << "\tfrmsiz : " << frmsiz << "\t framesize - 1 (words)" << "\n";
 			os << "\tbsid      : " << bsid << "\n";
 
 			if (bsmod == 0x07 && acmod > 3)
@@ -339,92 +239,149 @@ namespace libr1k
 		return os;
 	}
 
-#if 0
-	int au_ac3_t::FindSyncWord(void)
-	{
-		const uint8_t *ptr = usedPtr;
-		bool syncWordFound = false;
-		bool syncFound = false;
-		int bytesPerSyncframe = 0;
+    std::shared_ptr<SampleBuffer> EAC3Decoder::DecodeFrame()
+    {
+        return nullptr;
+    }
 
-		while (!syncFound && (usedPtr < endPtr - 5))
-		{
-			while (usedPtr < endPtr - 5)  //  Need to at least be able to read the syncinfo field
-			{
-				if (*usedPtr == BYTE_1(syncword) && *(usedPtr + 1) == BYTE_0(syncword))
-				{
-					bool error_detected = false;
-					const unsigned int fscod = (*(usedPtr + 4) >> 6) & 0x03;
-					const unsigned int frmsizcod = *(usedPtr + 4) & 0x3f;
+    std::shared_ptr<SampleBuffer> EAC3Decoder::DecodeFrame_PassThru()
+    {
+        if (esBuffer == nullptr || esBuffer->size() < 6 || remaingDataIncomplete)
+        {
+            // Cannot decode at this time
+            return nullptr;
+        }
 
-					if (fscod > 2)
-					{
-                        if (logger.get()) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_ac3_t::%s - fscod %u illegal value", __FUNCTION__, fscod);
-						error_detected = true;
-					}
-					if (frmsizcod > frmsizcod_max)
-					{
-                        if (logger.get()) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_ac3_t::%s - frmsizcod %u > max(%d)", __FUNCTION__, frmsizcod, frmsizcod_max);
-						error_detected = true;
-					}
-					
-					if (!error_detected)
-					{
-						bytesPerSyncframe = frmsizcod_table[fscod][frmsizcod] * 2;
-					}
-					if (error_detected || bytesPerSyncframe < 0 || bytesPerSyncframe > (frmsizcod_table[2][frmsizcod_max] * 2))
-					{
-                        if (logger.get()) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "au_ac3_t::%s - strange frame size (%d bytes)this is going to cause problems", __FUNCTION__, bytesPerSyncframe);
-						// set bytesPerSyncframe to something small to try and interpret the header but we then jump it and try to resync 
-						bytesPerSyncframe = 20;
-					}
-					syncWordFound = true;
-					break;
-				}
-				++usedPtr;
-			}
+        shared_ptr<SampleBuffer> outputFrame;
+        int blksFound = 0;
+        if (incompleteOutputFrame != nullptr)
+        {
+            outputFrame = incompleteOutputFrame;
+            blksFound = incompleteBlks;
+        }
+        else
+        {
+            outputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
+        }
 
-			// Now check CRC2
-			if (syncWordFound)
-			{
-				if ((usedPtr + bytesPerSyncframe) < endPtr)
-				{
-					currentFrameByteSize = bytesPerSyncframe;
-					// Full frame of data in the buffer
-#if 0
-					uint16_t CRC1 = *(ptr + 2) << 8 | *(ptr + 3);
-					uint16_t CRC2 = *(ptr + bytesPerSyncframe - 2) << 8 | *(ptr + bytesPerSyncframe - 1);
-					int framesize_w = bytesPerSyncframe / 2;
-					int CRC1_framesize = (int)(framesize_w >> 1) + (int)(framesize_w >> 3);
-					int CRC2_framesize = framesize_w;
-					
-					int calculatedCRC = calc_16_CRC(AC3_CRC_POLY, (ptr + 2), CRC1_framesize - 2); // calculate the check sum from 4th byte along and then compare to the checksum stored in the packet
+        // Attempt to decode a single frame (6 audio blocks worth) from the buffer      
+        bool terminate = false;
+        while (blksFound < 6 && !terminate)
+        {
+            AC3Decoder::SyncStatus success = FindSyncWord(esBuffer);
 
-                    if (logger.get()) logger->AddMessage(Log::DEBUG_LOG_LEVEL, "%s CRC1 0x%04x", __FUNCTION__, calculatedCRC);
-#else
-					// CRC calculation not currently working
-					syncFound = true;
-#endif
-				}
-				else
-				{
-                    return AU_AC3_INSUFFICIENT_DATA;
-				}
-				syncPtr = usedPtr;
-			}
-		}
+            switch (success)
+            {
+            case SYNC_FOUND:
+                {
+                    // Interpret the frame
+                    au_eac3_t packetInterpreter(esBuffer.get());
+                    packetInterpreter.preProcessHeader();
+                    packetInterpreter.InterpretFrame();
 
-		this->syncFound = syncFound;
-		if (syncFound)
-		{
-            return AU_AC3_OKAY;
-		}
-		else
-		{
-            return AU_AC3_SYNC_NOT_FOUND;
-		}
-	}
-#endif
+                    // Is the whole frame available
+                    int frameSize = packetInterpreter.getFrameSize();
+                    if (esBuffer->size() < frameSize)
+                    {
+                        // Not enough data available
+                        remaingDataIncomplete = true;
+                        terminate = true;
+                    }
+                    else
+                    {
+                        CopyDataToOutputFrame(esBuffer, outputFrame, frameSize);
+                        esBuffer->remove(frameSize);
+                        blksFound += packetInterpreter.getNumAudioBlocks();
+                    }
+                }
+                break;
+
+            case SYNC_INCOMPLETE:
+                // We ran out of data reading the header
+                // save the current state and bail out.
+                remaingDataIncomplete = true;
+                terminate = true;
+                break;
+
+            case SYNC_NOT_FOUND:
+            default:
+                terminate = true;
+                break;
+            }
+        }
+
+        if (blksFound > 6)
+        {
+            // This shouldn't happen - something went wrong
+            if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru - Gathered more than 6 blocks");
+            outputFrame = nullptr;
+            incompleteOutputFrame = nullptr;
+            incompleteBlks = 0;
+            return nullptr;
+        }
+        else if (blksFound < 6)
+        {
+            incompleteOutputFrame = outputFrame;
+            incompleteBlks = blksFound;
+            return nullptr;
+        }
+        else
+        {
+            return outputFrame;
+        }
+    }
+
+    AC3Decoder::SyncStatus EAC3Decoder::FindSyncWord(shared_ptr<DataBuffer_u8> buf)
+    {
+        if (buf->size() < 6)
+        {
+            return SYNC_NOT_FOUND;
+        }
+
+        int i = 0;
+        uint16_t syncword_test = (*buf)[i] << 8 | (*buf)[i + 1];
+
+        while (syncword_test != au_eac3_t::SYNCWORD && (i + 1) < buf->size())
+        {   
+            i++;
+            syncword_test = (*buf)[i] << 8 | (*buf)[i+1];
+        }
+
+        // remove data before syncword
+        buf->remove(i);
+
+        if (buf->size() > 6)
+        {
+            // stopped early must have found syncword
+            // check first bsid to see if correct
+
+            int bsid = ((*buf)[i + 5] >> 3) & 0x01f;
+
+            if (bsid == au_eac3_t::BSID)
+            {
+                return SYNC_FOUND;
+            }
+            else
+            {
+                // Skip over and continue the search
+                buf->remove(1);
+                return FindSyncWord(buf);
+            }
+        }
+        else
+        {
+            if (buf->size() == 0)
+            {
+                return SYNC_NOT_FOUND;
+            }
+            else
+            {
+                return SYNC_INCOMPLETE;
+            }
+        }
+
+        return SYNC_NOT_FOUND;
+    }
 
 	EAC3PacketHandler::EAC3PacketHandler(ofstream *str, bool Debug_on)
 		:
@@ -433,16 +390,16 @@ namespace libr1k
         
 	}
 
-
 	void EAC3PacketHandler::PESDecode(PESPacket_t *buf)
 	{
-        // Need to use all the bytes in the PES packet or they will
+        // Need to use all the bytes in the PES packet
         // 
-		// Read PES header
+
+		// Put data into ES buffer
 
 		uint8_t *PES_data = buf->GetPESData();
-		//// added to the first byte after the PES header length field
-		//// Need to adjust PESPacketSize to make it just the payload size
+		// added to the first byte after the PES header length field
+		// Need to adjust PESPacketSize to make it just the payload size
         unsigned int PES_data_size = buf->GetPESDataLength();
 
         if (!PES_data_size)
@@ -450,132 +407,49 @@ namespace libr1k
 
         GetDecoder()->addData(PES_data, PES_data_size);
 
-        while (DecodeFrame(&PES_data, &PES_data_size))
-        {}
+        // Try to get complete frames out of ES buffer
+        shared_ptr<SampleBuffer> decoded_frame;
+        while ((decoded_frame = GetDecoder()->DecodeFrame_PassThru()) != nullptr)
+        {
+            decoded_frame->setBitDepth(16);
+            // Each frame should be output every 1536 samples
+            const int FrameSamples = AC3Decoder::DECODED_FRAME_SIZE;
+            const int NumSubFrames = FrameSamples * 2;
+            const int dataType = 1;
 
-	}
+            int outputSubFrames = 0;
+            int sourceSubFrames = 0;
+            const AES_Header AES(24, dataType, NumSubFrames);
 
-    bool EAC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
-    {
-#if 0
-        while ((return_val = decoder->FindSyncWord()) == au_ac3_t::AU_AC3_OKAY)
-		{
-			if (PacketSpansPES)
-			{
-				// AU spans from last frame so use PTS from last frame but indicate to use the new one next time.
-				PacketSpansPES = false;
-			}
-			else
-			{
-				// AU is completely contained in this AU then update the PTS
-				ac3Decoder->SetPTS(PTS);
-			}
-			
-			ac3Decoder->InterpretFrame();
-			ac3Decoder->write_csv(*outStream);
-
-            if (ac3Decoder->a52_locked())
+            while (sourceSubFrames < decoded_frame->size() && outputSubFrames < NumSubFrames)
             {
-                ac3Decoder->decode();
+                switch (outputSubFrames)
+                {
+                    case 0:
+                        OutputWAV->WriteSample(AES.Pa);
+                        break;
+                    case 1:
+                        OutputWAV->WriteSample(AES.Pb);
+                        break;
+                    case 2:
+                        OutputWAV->WriteSample(AES.Pc);
+                        break;
+                    case 3:
+                        OutputWAV->WriteSample(AES.Pd);
+                        break;
+                    default:
+                        OutputWAV->WriteSample(decoded_frame->get(sourceSubFrames++));
+                        break;
+                }
+                outputSubFrames++;
             }
-			ac3Decoder->JumpOverCurrentFrame();
-		}
 
-        if (return_val == au_ac3_t::AU_AC3_INSUFFICIENT_DATA)
-		{
-			PacketSpansPES = true;
-		}
-		else
-		{
-			PacketSpansPES = false;
-		}
-
-		return;
-#endif	
-#if 0
-		int NumStereoPairsStuffed = 0;
-		// Check metadata and extract FSIZE/NBLKS so we know how much stuffing to add between consecutive DTS frames
-		au_ac3_t Metadata(*AC3Frame, *BufferSize);
-		if (Metadata.SYNCWORD != DTS_SYNCWORD)
-		{
-			// This is not a DTS syncword
-			BufferSize = 0;
-			return false;
-		}
-		FrameCount++;
-
-		NumStereoPairsStuffed = 1536;
-		
-
-		// Write 4 sample AES header to WAV file
-		const int dataType = 1;
-		const int numSamples = 2 * NumStereoPairsStuffed;
-		
-		AES_Header AES(16, dataType, numSamples);
-
-		// Write AES Header to WAV file
-
-		int samplesWritten = 0;
-		for (samplesWritten = 0; samplesWritten < 4; samplesWritten++)
-		{
-			switch (samplesWritten)
-			{
-			case 0:
-				OutputFile->WriteSample(AES.Pa);
-				break;
-			case 1:
-				OutputFile->WriteSample(AES.Pb);
-				break;
-			case 2:
-				OutputFile->WriteSample(AES.Pc);
-				break;
-			case 3:
-				OutputFile->WriteSample(AES.Pd);
-				break;
-			}
-		}
-
-		// Write DTS frame to WAV file
-		// Take the bytes of DTSFrame in pairs and write each one out as a sample
-		int samplesToWrite = (Metadata.FSIZE + 1) / 2; // We take care if there is an odd number of bytes below
-
-		if ((Metadata.FSIZE + 1) > *BufferSize)
-		{
-			samplesToWrite = (*BufferSize + 1) / 2; /* +1 to roundup when doing integer arithmetic */
-		}
-
-		samplesToWrite += samplesWritten; // The size of the AES header - the amount we have already written
-		unsigned char *source = *DTSFrame;
-		for (; (samplesWritten < samplesToWrite) && (samplesWritten < numSamples); samplesWritten++)
-		{
-			unsigned short temp = (source[0] << 8) | source[1];
-			OutputFile->WriteSample(temp);
-			source += 2;
-			(*BufferSize) -= 2;
-		}
-
-		if ((Metadata.FSIZE + 1) % 2)
-		{
-			// ODD number so we have 1 more byte to write into a sample
-			if (samplesWritten < numSamples)
-			{
-				OutputFile->WriteSample((source[0] << 8));
-				source++;
-				(*BufferSize) -= 2;
-			}
-		}
-
-		*DTSFrame = source;
-
-		// Pad out with samples depending on DTS Frame type
-
-		OutputFile->WriteSample(0x0);
-		samplesWritten++;
-		for (; samplesWritten < numSamples; samplesWritten++)
-		{
-			OutputFile->WriteSample(0x0);
-		}
-#endif
-		return false;
+            while (outputSubFrames < NumSubFrames)
+            {
+                OutputWAV->WriteSample(0);
+                outputSubFrames++;
+            }
+        }
 	}
+    
 }

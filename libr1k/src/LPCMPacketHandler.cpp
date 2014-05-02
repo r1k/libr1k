@@ -55,7 +55,7 @@ namespace libr1k
 		WAVParams.num_channels = 2;
 		WAVParams.SamplesPerSec = 48000;
 
-		OutputFile = new WAVFile(str, &(WAVParams));
+		OutputFile = new WAVFile(str, WAVParams);
 		FrameCount = 0;
 		DebugOn = Debug_on;
 		if (DebugOn)

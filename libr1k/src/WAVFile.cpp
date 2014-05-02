@@ -75,13 +75,13 @@ namespace libr1k
 
 #define SIMPLE_WAV
 
-    WAVFile::WAVFile(ofstream *outstr, wav_params *wv_params) :
+    WAVFile::WAVFile(ofstream *outstr, wav_params &wv_params) :
         input(nullptr),
         fileSize(0),
         InputReady(false),
         ReadCount(0),
         output(outstr),
-        local_params(*wv_params)
+        local_params(wv_params)
     {
         switch (local_params.bit_depth)
         {

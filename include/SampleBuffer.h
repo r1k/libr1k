@@ -23,9 +23,9 @@ namespace libr1k
         // Call adjustFixedPoint to change this.
 
     public:
-        SampleBuffer() : point(32) { }
-        SampleBuffer(const int size) : DataBuffer_int(size), point(32) { }
-        SampleBuffer(const int *pData, const int dataLength) : DataBuffer_int(pData, dataLength), point(32) {}
+        SampleBuffer() : point(32), bitdepth(32) {}
+        SampleBuffer(const int size) : DataBuffer_int(size), point(32), bitdepth(32)  { }
+        SampleBuffer(const int *pData, const int dataLength) : DataBuffer_int(pData, dataLength), point(32), bitdepth(32)  {}
         SampleBuffer(SampleBuffer& src);
         virtual ~SampleBuffer() {}
 
@@ -35,8 +35,33 @@ namespace libr1k
         virtual void adjustFixedPoint(const int point);
 
         virtual int getFixedPoint() const { return point; }
+
+        virtual void setBitDepth(const int depth)
+        {
+            bitdepth = depth;
+        }
+
+        virtual const int getBitDepth() const
+        {
+            return bitdepth;
+        }
+
+        virtual int put(const int i, const int val, const int depth)
+        {
+            (vect()[i]) = val << ((sizeof(int)* 8) - depth);
+            return val;
+        }
+
+        virtual int get(const int i)
+        {
+            // This returns the bit shifted value
+            
+            return (vect()[i]) >> ((sizeof(int)* 8) - bitdepth);
+        }
+
     private:
-        int point; 
+        int point;
+        int bitdepth;
 
         // SampleBuffer(const SampleBuffer& src) = delete;
     };

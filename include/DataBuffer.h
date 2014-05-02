@@ -53,9 +53,13 @@ namespace libr1k
             return _data[i];
         }
 
-        virtual typename T_vect::iterator remove(const int amount)
+        virtual typename T_vect::iterator remove(const unsigned int amount)
         {
-            return _data.erase(_data.begin(), _data.begin() + amount);
+            if (amount <= _data.size())
+            {
+                return _data.erase(_data.begin(), _data.begin() + amount);
+            }
+            return _data.begin();
         }
 
         virtual T *data() 
@@ -84,6 +88,7 @@ namespace libr1k
 
     typedef DataBuffer<uint8_t>  DataBuffer_u8;
     typedef DataBuffer<uint16_t> DataBuffer_u16;
+    typedef DataBuffer<uint32_t> DataBuffer_u32;
     typedef DataBuffer<int>      DataBuffer_int;
     typedef DataBuffer<double>   DataBuffer_double;
 };

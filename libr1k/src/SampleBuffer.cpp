@@ -43,7 +43,7 @@ namespace libr1k
     }
 
     SampleBuffer::SampleBuffer(SampleBuffer& src) :
-        point(src.getFixedPoint())
+        point(src.getFixedPoint()), bitdepth(32)
     {
         SampleBuffer::operator=(src);
     }

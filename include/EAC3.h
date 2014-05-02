@@ -24,7 +24,7 @@ namespace libr1k
 
         au_eac3_t(shared_ptr<Log> log = nullptr);
         au_eac3_t(const uint8_t * const buf, const int bufSize, shared_ptr<Log> log = nullptr);
-        au_eac3_t(const DataBuffer<uint8_t> * buffer, shared_ptr<Log> log = nullptr);
+        au_eac3_t(DataBuffer<uint8_t> * const buffer, shared_ptr<Log> log = nullptr);
 
         ~au_eac3_t() {}
         
@@ -32,14 +32,38 @@ namespace libr1k
 
         void InterpretFrame();
 
-        virtual bool preProcessHeader(const uint8_t *data, const int length, int& frame_length) const;
+        virtual bool preProcessHeader();
 
         virtual int decode();
+
+        virtual int getNumAudioBlocks() const
+        {
+            switch (nblkscod)
+            {
+            case 0:
+                return 1;
+            case 1:
+                return 2;
+            case 2:
+                return 3;
+            case 3:
+            default:
+                return 6;
+            }
+        }
 
         virtual ostream& write(std::ostream &os);
         virtual ostream& write_csv(std::ostream &os);
         virtual ostream& write_csv_header(std::ostream &os);
 
+        enum { BSID = 16 };
+        enum { MAX_FRAME_LEN = 2048};
+
+    protected:
+        unsigned int nblkscod;
+        unsigned int frmsiz;
+        unsigned int strmtyp;
+        unsigned int substreamid;
 
     private:
 
@@ -54,19 +78,19 @@ namespace libr1k
         // new EAC3Decoder(esPacketDecoder::CREATE_DECODER)
 
         EAC3Decoder(const flag_t createDecoder) :
-            AC3Decoder() 
+            AC3Decoder(), incompleteOutputFrame(nullptr), incompleteBlks(0)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         EAC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
-            AC3Decoder(pData, dataLength)
+            AC3Decoder(pData, dataLength), incompleteOutputFrame(nullptr), incompleteBlks(0)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         EAC3Decoder(shared_ptr<DataBuffer_u8> const pData, const flag_t createDecoder) :
-            AC3Decoder(pData)
+            AC3Decoder(pData), incompleteOutputFrame(nullptr), incompleteBlks(0)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
@@ -83,6 +107,8 @@ namespace libr1k
 
         virtual ~EAC3Decoder() {}
 
+        virtual AC3Decoder::SyncStatus FindSyncWord(shared_ptr<DataBuffer_u8>);
+
         bool init()
         {
             if (au_frame_decoder == nullptr)
@@ -94,7 +120,14 @@ namespace libr1k
             return std::static_pointer_cast<au_eac3_t>(au_frame_decoder);
         }
 
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame();
+
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru();
+
     protected:
+
+        std::shared_ptr<SampleBuffer> incompleteOutputFrame;
+        int incompleteBlks;
         
     private:
         
@@ -106,7 +139,6 @@ namespace libr1k
 		EAC3PacketHandler(ofstream *str, bool Debug_on = false);
         ~EAC3PacketHandler(void) {}
 
-        virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
 		virtual void PESDecode(PESPacket_t *buf);
 
 		void SetDebugOutput(bool On);

@@ -6,11 +6,6 @@ using namespace std;
 
 namespace libr1k
 {
-    bool TSPacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
-    { 
-        return false; 
-    }
-
     TSPacketHandler::~TSPacketHandler(void)
     {
         while (!this->PESdata.empty())
@@ -335,9 +330,15 @@ namespace libr1k
         uint8_t *PES_data =buf->GetPESData(); // The start of the data is the number of bytes in the PES header length field
         // added to the first byte after the PES header length field
         // Need to adjust PESPacketSize to make it just the payload size
-        unsigned int PESPacketSize = buf->GetPESDataLength();
+        unsigned int PES_data_size = buf->GetPESDataLength();
 
-        DecodeFrame(&PES_data, &PESPacketSize);
+        GetDecoder()->addData(PES_data, PES_data_size);
+
+        shared_ptr<SampleBuffer> decoded_frame;
+        while ((decoded_frame = GetDecoder()->DecodeFrame()) != nullptr)
+        {
+
+        }
     }
 
 

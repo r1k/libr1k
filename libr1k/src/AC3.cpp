@@ -94,7 +94,7 @@ namespace libr1k
 		xbsi2e(0), dsurexmod(0), dheadphonmod(0),
 		adconvtyp(0), xbsi2(0), encinfo(0),
 		addbsie(0), addbsil(0),
-		CRC2(0)
+        CRC2(0)
 	{
 		memset(addbsi,0, additional_bsi_max);
         if (logger.get()) logger->AddMessage(Log::MIN_LOG_LEVEL, "au_ac3_t constructor - no buffer");
@@ -126,20 +126,42 @@ namespace libr1k
         if (logger.get()) logger->AddMessage(Log::MIN_LOG_LEVEL, "au_ac3_t constructor - with buffer");
 
         liba52 = std::make_shared<liba52_wrapper>();
-
-        int length = 0;
-        if (preProcessHeader(buf, bufSize, length))
-        {
-            decode();
-        }
 	}
 
-    bool au_ac3_t::preProcessHeader(const uint8_t *data, const int data_length, int& frame_length) const
+    au_ac3_t::au_ac3_t(DataBuffer_u8 * const buffer, shared_ptr<Log> log) :
+        au_esPacket_t(log),
+        CRC1(0),
+        fscod(0), frmsizcod(0), bsid(0),
+        bsmod(0), acmod(0), cmixlev(0),
+        surmixlev(0), dsurmod(0), lfeon(0),
+        dialnorm(0), compre(0), compr(0),
+        langcode(0), langcod(0), audprodie(0),
+        mixlevel(0), roomtyp(0), dialnorm2(0),
+        compr2e(0), compr2(0), langcod2e(0),
+        langcod2(0), audprodi2e(0), mixlevel2(0),
+        roomtyp2(0), copyrightb(0), origbs(0),
+        xbsi1e(0), dmixmod(0), ltrtcmixlev(0),
+        ltrtsurmixlev(0), lorocmixlev(0), lorosurmixlev(0),
+        xbsi2e(0), dsurexmod(0), dheadphonmod(0),
+        adconvtyp(0), xbsi2(0), encinfo(0),
+        addbsie(0), addbsil(0),
+        CRC2(0)
+    {
+        memset(addbsi, 0, additional_bsi_max);
+
+        setBuffer(buffer->data(), buffer->size());
+
+        if (logger.get()) logger->AddMessage(Log::MIN_LOG_LEVEL, "au_ac3_t constructor - with buffer");
+
+        liba52 = std::make_shared<liba52_wrapper>();
+    }
+
+    bool au_ac3_t::preProcessHeader()
     {
         if (data_length < 5)
             return false;
 
-        if (*data == BYTE_1(syncword) && *(data + 1) == BYTE_0(syncword))
+        if (*data == BYTE_1(SYNCWORD) && *(data + 1) == BYTE_0(SYNCWORD))
         {
             bool error_detected = false;
             const unsigned int fscod = (*(data + 4) >> 6) & 0x03;
@@ -339,7 +361,7 @@ namespace libr1k
 		os << ",";
 
 		os.setf(std::ios::hex, std::ios::basefield);
-		os << syncword << ",";
+		os << SYNCWORD << ",";
 		streamsize wdth = os.width();
 		os.fill('0');
 		os << setw(4) << CRC1 << ",";
@@ -568,11 +590,33 @@ namespace libr1k
 	}
 #endif
 
+    int AC3Decoder::CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes)
+    {
+        int NumWords = (numBytes + 1) / 2;
+        int srcIndex = 0;
+        
+
+        dst->setBitDepth(16);
+
+        for (int i = 0; i < NumWords; i++)
+        {
+            int word = (*src)[srcIndex++];
+            word <<= 8;
+            word |= (*src)[srcIndex++];
+            dst->add(&word, 1);
+        }
+
+        src->remove(srcIndex);
+
+        return NumWords;
+    }
+    
 	AC3PacketHandler::AC3PacketHandler(ofstream *str, bool Debug_on)
 		:
 		FrameCount(0),
 		DebugOn(Debug_on),
 		outStream(str),
+        OutputWAV(nullptr),
 		LogFile(nullptr),
 		firstPTS(0),
 		PacketSpansPES(false)
@@ -585,6 +629,12 @@ namespace libr1k
             LogFile = std::shared_ptr<Log>(new Log(Log::MIN_LOG_LEVEL));
 		}
        
+        wav_params wv_params;
+        wv_params.bit_depth = 16;
+        wv_params.num_channels = 2;
+        wv_params.SamplesPerSec = 48000;
+
+        OutputWAV = shared_ptr<WAVFile>(new WAVFile(outStream, wv_params));
 	}
 
 	void AC3PacketHandler::SetDebugOutput(bool On)
@@ -606,25 +656,31 @@ namespace libr1k
 
 	void AC3PacketHandler::PESDecode(PESPacket_t *buf)
 	{
-#if 0
-		// Read PES header
-		StreamTime::getInstance().StartTime_Set(buf->PTS);
+        // Need to use all the bytes in the PES packet or they will
+        // 
+        // Read PES header
 
-		uint8_t *PES_data = &(buf->payload[9]) + buf->payload[8]; // The start of the data is the number of bytes in the PES header length field
-		// added to the first byte after the PES header length field
-		// Need to adjust PESPacketSize to make it just the payload size
-		int PESPacketSize = buf->nextFreeByte - PES_data;
-		
-		// add data to decoder buffer
-		ac3Decoder->newData(PES_data, PESPacketSize);	
+        uint8_t *PES_data = buf->GetPESData();
+        //// added to the first byte after the PES header length field
+        //// Need to adjust PESPacketSize to make it just the payload size
+        unsigned int PES_data_size = buf->GetPESDataLength();
 
-        DecodeFrame(&PES_data, &PESPacketSize);
-#endif
+        if (!PES_data_size)
+            return;
+
+        GetDecoder()->addData(PES_data, PES_data_size);
+
+        shared_ptr<SampleBuffer> decoded_frame;
+        while ((decoded_frame = GetDecoder()->DecodeFrame()) != nullptr)
+        {
+
+        }
 	}
 
+#if 0
     bool AC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
 	{
-#if 0
+
         int return_val = au_ac3_t::AU_AC3_SYNC_NOT_FOUND;
 		
         while ((return_val = ac3Decoder->FindSyncWord()) == au_ac3_t::AU_AC3_OKAY)
@@ -660,8 +716,7 @@ namespace libr1k
 		}
 
 		return;
-#endif		
-#if 0
+
 		int NumStereoPairsStuffed = 0;
 		// Check metadata and extract FSIZE/NBLKS so we know how much stuffing to add between consecutive DTS frames
 		au_ac3_t Metadata(*AC3Frame, *BufferSize);
@@ -744,7 +799,7 @@ namespace libr1k
 		{
 			OutputFile->WriteSample(0x0);
 		}
-#endif
 		return false;
 	}
+#endif
 }

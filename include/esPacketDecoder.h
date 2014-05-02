@@ -3,6 +3,7 @@
 #include "libr1k.h"
 #include "_no_copy.h"
 #include "DataBuffer.h"
+#include "SampleBuffer.h"
 #include "Types.h"
 #include <queue>
 #include <ostream>
@@ -14,10 +15,10 @@ namespace libr1k
     {
         // Stores only a pointer to the data, data must be maintained elsewhere.
     public:
-        au_esPacket_t(shared_ptr<Log> log = nullptr) : logger(log) {}
+        au_esPacket_t(shared_ptr<Log> log = nullptr) : logger(log), frame_length(0) {}
         au_esPacket_t(const uint8_t *dat, const int len, shared_ptr<Log> log = nullptr) 
             : 
-            logger(log), data(data), data_length(len) {}
+            logger(log), data(data), data_length(len), frame_length(0) {}
 
         virtual ~au_esPacket_t() {}
 
@@ -25,7 +26,7 @@ namespace libr1k
         virtual ostream& write_csv(std::ostream &os) = 0;
         virtual ostream& write_csv_header(std::ostream &os) = 0;
 
-        virtual bool preProcessHeader(const uint8_t *data, const int length, int& frame_length) const = 0;
+        virtual bool preProcessHeader() = 0;
         virtual void setBuffer(const uint8_t *data, const int length) 
         {
             this->data = data; 
@@ -33,10 +34,17 @@ namespace libr1k
         }
         virtual int decode() = 0;
 
+        virtual int getFrameSize() const
+        {
+            return frame_length;
+        }
+
     protected:
         shared_ptr<Log> logger;
         const uint8_t *data;
         int data_length;
+
+        int frame_length;
     private:
     };
 
@@ -54,41 +62,64 @@ namespace libr1k
 
         esPacketDecoder(shared_ptr<Log> log = nullptr) : 
             logger(nullptr), 
-            _data(),
-            au_frame_decoder(nullptr) {}
+            esBuffer(new DataBuffer_u8()),
+            au_frame_decoder(nullptr),
+            remaingDataIncomplete(false) {}
 
         esPacketDecoder(uint8_t * const pData, const int dataLength, shared_ptr<Log> log = nullptr) :
             logger(nullptr),
-            _data(),
-            au_frame_decoder(nullptr) 
+            esBuffer(new DataBuffer_u8(pData, dataLength)),
+            au_frame_decoder(nullptr),
+            remaingDataIncomplete(false)
         {
-            addData(pData, dataLength);
         }
 
         esPacketDecoder(shared_ptr<DataBuffer_u8> const pData, shared_ptr<Log> log = nullptr) :
             logger(nullptr),
-            _data(),
-            au_frame_decoder(nullptr)
+            esBuffer(new DataBuffer_u8(pData->data(), pData->size())),
+            au_frame_decoder(nullptr),
+            remaingDataIncomplete(false)
         {
-            addData(pData);
         }
 
         virtual void addData(uint8_t *const pData, const int dataLength)
         {
-            shared_ptr<DataBuffer_u8> temp(new DataBuffer_u8(pData, dataLength));
-            addData(temp);
+            if (esBuffer == nullptr)
+            {
+                esBuffer = shared_ptr<DataBuffer_u8>(new DataBuffer_u8(pData, dataLength));
+            }
+            else
+            {
+                esBuffer->add(pData, dataLength);
+            }
+            remaingDataIncomplete = false;
         }
 
         virtual void addData(shared_ptr<DataBuffer_u8> const pData)
         {
-            _data.push(pData);
+            if (esBuffer == nullptr)
+            {
+                esBuffer = shared_ptr<DataBuffer_u8>(new DataBuffer_u8(pData->data(), pData->size()));
+            }
+            else
+            {
+                esBuffer->add(pData->data(), pData->size());
+            }
+            remaingDataIncomplete = false;
         }
 
         shared_ptr<au_esPacket_t> GetDecoder() { return au_frame_decoder; }
-        
+
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame() = 0;
+       
     protected:
-        shared_ptr<Log> logger;
-        std::queue<shared_ptr<DataBuffer_u8>> _data;
-        shared_ptr<au_esPacket_t> au_frame_decoder;
+        std::shared_ptr<Log> logger;
+        std::shared_ptr<DataBuffer_u8> esBuffer;
+        std::shared_ptr<au_esPacket_t> au_frame_decoder;
+
+        bool remaingDataIncomplete;
+        
+        virtual int CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes) = 0;
+
     };
 };

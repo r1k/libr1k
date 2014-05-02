@@ -24,7 +24,7 @@ namespace libr1k
 
         au_ac3_t(shared_ptr<Log> log = nullptr);
         au_ac3_t(const uint8_t * const buf, const int bufSize, shared_ptr<Log> log = nullptr);
-        au_ac3_t(const DataBuffer<uint8_t> * buffer, shared_ptr<Log> log = nullptr);
+        au_ac3_t(DataBuffer<uint8_t> * const buffer, shared_ptr<Log> log = nullptr);
 
         ~au_ac3_t() {}
         
@@ -32,7 +32,7 @@ namespace libr1k
 
         void InterpretFrame();
 
-        virtual bool preProcessHeader(const uint8_t *data, const int length, int& frame_length) const;
+        virtual bool preProcessHeader();
 
         virtual int decode();
 
@@ -42,19 +42,23 @@ namespace libr1k
 
         uint64_t PTS;
 
+        enum { SYNCWORD = 0xB77 };
+        enum { BSID = 8 };
+
     protected:
 
-        int bufferSize;
+        uint8_t *buf;
+        int bufLength;
+
         bool syncFound;
         bool syncProcessed;
 
         shared_ptr<liba52_wrapper> liba52;
-
-        static const uint16_t syncword = 0xB77;
-        static const int frmsizcod_max = 37;
+               
+        enum { frmsizcod_max = 37 };
         static const int frmsizcod_table[3][frmsizcod_max + 1];
         static const int bitrate_table[frmsizcod_max + 1];
-        static const int additional_bsi_max = 2000;
+        enum { additional_bsi_max = 2000 };
 
         uint16_t CRC1;
         unsigned int fscod;
@@ -116,15 +120,16 @@ namespace libr1k
 
     public:
 
+        enum SyncStatus{ SYNC_NOT_FOUND = 0, SYNC_FOUND, SYNC_INCOMPLETE };
         // For instanciation e.g.
         // new AC3Decoder(esPacketDecoder::CREATE_DECODER)
+        static const int DECODED_FRAME_SIZE = 1536;
 
         AC3Decoder(const flag_t createDecoder) :
             esPacketDecoder()
         {
             au_frame_decoder = shared_ptr<au_ac3_t>(new au_ac3_t());
-        }
-        
+        }       
         AC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
             esPacketDecoder(pData, dataLength)
         {
@@ -139,17 +144,14 @@ namespace libr1k
         // Constructors to call when inheriting from this class to make sure decoder isn't created 
         AC3Decoder() :
             esPacketDecoder() { }
-
         AC3Decoder(uint8_t * const pData, const int dataLength) :
             esPacketDecoder(pData, dataLength) { }
-
         AC3Decoder(shared_ptr<DataBuffer_u8> const pData) :
             esPacketDecoder(pData) { }
 
-
         virtual ~AC3Decoder() {}
 
-        virtual bool FindSyncWord() { return false; }
+        virtual SyncStatus FindSyncWord(shared_ptr<DataBuffer_u8>) { return SYNC_NOT_FOUND; }
 
         bool init()
         {
@@ -162,6 +164,17 @@ namespace libr1k
             return static_pointer_cast<au_ac3_t>(au_frame_decoder);
         }
         
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame()
+        {
+            return nullptr;
+        }
+
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru()
+        {
+            return nullptr;
+        }
+
+        virtual int CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
 
     private:
 
@@ -173,7 +186,6 @@ namespace libr1k
 		AC3PacketHandler(ofstream *str, bool Debug_on = false);
         ~AC3PacketHandler(void) {}
 
-        virtual bool DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
 		virtual void PESDecode(PESPacket_t *buf);
 
 		void SetDebugOutput(bool On);
@@ -198,6 +210,7 @@ namespace libr1k
 	protected:
 
         ofstream *outStream;
+        std::shared_ptr<WAVFile> OutputWAV;
         uint64_t firstPTS;
 
         bool DebugOn;

@@ -129,8 +129,6 @@ namespace libr1k
         virtual void			PESDecode(PESPacket_t *buf);
         virtual bool            CheckCCError(unsigned int cc);
 
-        virtual bool            DecodeFrame(unsigned char **Frame, unsigned int *FrameSize);
-
 		enum PacketProcessStateMachine {WaitForPesStart, WaitForPESData, PESDataError, CCError} CurrentState, NextState;
 
 		unsigned int BufferLevel;
