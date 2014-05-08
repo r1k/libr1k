@@ -592,9 +592,9 @@ namespace libr1k
 
     int AC3Decoder::CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes)
     {
+        // 16 bit copy so round up the number of bytes when converting to number of words
         int NumWords = (numBytes + 1) / 2;
         int srcIndex = 0;
-        
 
         dst->setBitDepth(16);
 
@@ -603,7 +603,25 @@ namespace libr1k
             int word = (*src)[srcIndex++];
             word <<= 8;
             word |= (*src)[srcIndex++];
-            dst->add(&word, 1);
+            dst->add(&word, 1, 16);
+        }
+
+        return NumWords;
+    }
+
+    int AC3Decoder::MoveDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes)
+    {
+        int NumWords = (numBytes + 1) / 2;
+        int srcIndex = 0;
+
+        dst->setBitDepth(16);
+
+        for (int i = 0; i < NumWords; i++)
+        {
+            int word = (*src)[srcIndex++];
+            word <<= 8;
+            word |= (*src)[srcIndex++];
+            dst->add(&word, 1, 16);
         }
 
         src->remove(srcIndex);

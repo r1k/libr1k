@@ -52,6 +52,17 @@ namespace libr1k
             return val;
         }
 
+        virtual void add(const int *pData, const int dataLength, const int depth)
+        {
+            // Could be more efficient, but this'll work for now
+            for (int i = 0; i < dataLength; i++)
+            {
+                int data = pData[i] << ((sizeof(int)* 8) - depth);
+                DataBuffer_int::add(&data, 1);
+            }
+            return;
+        }
+
         virtual int get(const int i)
         {
             // This returns the bit shifted value

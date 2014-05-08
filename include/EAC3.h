@@ -57,13 +57,14 @@ namespace libr1k
         virtual ostream& write_csv_header(std::ostream &os);
 
         enum { BSID = 16 };
-        enum { MAX_FRAME_LEN = 2048};
+        enum { MAX_FRAME_LEN = 2048 };
+
+        unsigned int strmtyp;
+        unsigned int substreamid;
 
     protected:
         unsigned int nblkscod;
         unsigned int frmsiz;
-        unsigned int strmtyp;
-        unsigned int substreamid;
 
     private:
 
@@ -73,30 +74,35 @@ namespace libr1k
     class EAC3Decoder : public AC3Decoder
     {
     public:
-
+        static const int MAX_NUM_SUBSTREAM_IDS = 8; // Hopefully big enough
+        static const int MAX_NUM_STREAMTYPES = 2; // Independent/Dependent can have Independent 
+                                                  // substream 0 and dependent substream 0 
+                                                  // both need 6 blocks of data
+        static const int MAX_NUM_SUBSTREAM_TYPE_SLOTS = MAX_NUM_STREAMTYPES * MAX_NUM_SUBSTREAM_IDS;
+        static const int BLOCKS_PER_AU = 6;
         // For instanciation e.g.
         // new EAC3Decoder(esPacketDecoder::CREATE_DECODER)
 
         EAC3Decoder(const flag_t createDecoder) :
-            AC3Decoder(), incompleteOutputFrame(nullptr), incompleteBlks(0)
+            AC3Decoder()
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         EAC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
-            AC3Decoder(pData, dataLength), incompleteOutputFrame(nullptr), incompleteBlks(0)
+            AC3Decoder(pData, dataLength)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         EAC3Decoder(shared_ptr<DataBuffer_u8> const pData, const flag_t createDecoder) :
-            AC3Decoder(pData), incompleteOutputFrame(nullptr), incompleteBlks(0)
+            AC3Decoder(pData)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         // Constructors to call when inheriting from this class to make sure decoder isn't created
-        EAC3Decoder() :
+        EAC3Decoder() : 
             AC3Decoder() { }
 
         EAC3Decoder(uint8_t * const pData, const int dataLength) :
@@ -124,12 +130,18 @@ namespace libr1k
 
         virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru();
 
-    protected:
+        virtual void addData(uint8_t *const pData, const int dataLength)
+        {
+            // Override the base class add because we want to use a PES queue.
+            shared_ptr<DataBuffer_u8> localBuffer(new DataBuffer_u8(pData, dataLength));
+            PESQueue.push(localBuffer);
+        }
 
-        std::shared_ptr<SampleBuffer> incompleteOutputFrame;
-        int incompleteBlks;
+    protected:
         
     private:
+
+        queue<shared_ptr<DataBuffer_u8>> PESQueue;
         
     };
 	

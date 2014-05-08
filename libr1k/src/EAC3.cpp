@@ -51,7 +51,7 @@ namespace libr1k
 
             if (!error_detected)
             {
-                frame_length = frmsiz + 1; 
+                frame_length = (frmsiz + 1) * 2; // frmsiz is one less than the overall size of the coded frame in 16 bit words
             }
 
             if (error_detected || frame_length < 0 || frame_length > MAX_FRAME_LEN)
@@ -241,32 +241,50 @@ namespace libr1k
 
     std::shared_ptr<SampleBuffer> EAC3Decoder::DecodeFrame()
     {
+        if (PESQueue.size() == 0)
+        {
+            return nullptr;
+        }
+
+        shared_ptr<SampleBuffer> outputFrame;
+        outputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
+
+        esBuffer = PESQueue.front(); // get the current PES packet
+
         return nullptr;
     }
 
     std::shared_ptr<SampleBuffer> EAC3Decoder::DecodeFrame_PassThru()
     {
-        if (esBuffer == nullptr || esBuffer->size() < 6 || remaingDataIncomplete)
+        if (PESQueue.size() == 0)
         {
-            // Cannot decode at this time
             return nullptr;
         }
 
-        shared_ptr<SampleBuffer> outputFrame;
-        int blksFound = 0;
-        if (incompleteOutputFrame != nullptr)
-        {
-            outputFrame = incompleteOutputFrame;
-            blksFound = incompleteBlks;
-        }
-        else
-        {
-            outputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
-        }
+        shared_ptr<SampleBuffer> EAC3AccessUnitOutputFrame;
+        EAC3AccessUnitOutputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
 
-        // Attempt to decode a single frame (6 audio blocks worth) from the buffer      
+        esBuffer = PESQueue.front(); // get the current PES packet
+        
+        // Attempt to assemble a single AU from the buffer
+        //
+        // The PES can contain 1 or more AUs.
+        // One AU can contain 1 or more substreams
+        // The first substream will be streamtype 0 or 2 and substream id 0
+        // Finding a substream with streamtype 0 or 2 and substream id of 0 
+        // will indicate the start of a new AU and the end of the last if 
+        // we are already assembling one.
+        //
+        // esBuffer is a shared pointer to the first PES packet in the queue
+        // the packet is left in the PESqueue until it is finished with
+        // it may be needed for subsequent calls to this function
+
+        int substreamsBlksFound[MAX_NUM_SUBSTREAM_TYPE_SLOTS] = { 0 };
         bool terminate = false;
-        while (blksFound < 6 && !terminate)
+        bool error = false;
+        bool frameBlockEnded = false;
+
+        while (!terminate)
         {
             AC3Decoder::SyncStatus success = FindSyncWord(esBuffer);
 
@@ -279,19 +297,57 @@ namespace libr1k
                     packetInterpreter.preProcessHeader();
                     packetInterpreter.InterpretFrame();
 
-                    // Is the whole frame available
-                    int frameSize = packetInterpreter.getFrameSize();
-                    if (esBuffer->size() < frameSize)
+                    const int substream_ref = (MAX_NUM_SUBSTREAM_IDS * ((packetInterpreter.strmtyp == 1) ? 1 : 0)) + packetInterpreter.substreamid; // get a unique count for independent / dependent substreams
+                    
+                    if (substream_ref == 0)
                     {
-                        // Not enough data available
-                        remaingDataIncomplete = true;
-                        terminate = true;
+                        // First Independant substream
+                        if (substreamsBlksFound[substream_ref] < 6)
+                        {
+                            substreamsBlksFound[substream_ref] += packetInterpreter.getNumAudioBlocks();
+                        }
+                        else
+                        {
+                            // This should be the start of the next time period so we have received all
+                            // the data for this 1536 sample period, the frame we have synced-to is for
+                            // the next period
+                            terminate = true;
+                            frameBlockEnded = true;
+                            break;
+                        }
                     }
                     else
                     {
-                        CopyDataToOutputFrame(esBuffer, outputFrame, frameSize);
+                        substreamsBlksFound[substream_ref] += packetInterpreter.getNumAudioBlocks();
+                    }
+
+                    if (substreamsBlksFound[packetInterpreter.substreamid] > 6)
+                    {
+                        // Error this shouldn't happen
+                        terminate = true;
+                        error = true;
+                        break;
+                    }
+
+                    // Is the whole frame available
+                    const int frameSize = packetInterpreter.getFrameSize();
+                    if (esBuffer->size() < frameSize)
+                    {
+                        // Not enough data available
+                        terminate = true;
+                        error = true;
+                    }
+                    else
+                    {
+                        CopyDataToOutputFrame(esBuffer, EAC3AccessUnitOutputFrame, frameSize);
                         esBuffer->remove(frameSize);
-                        blksFound += packetInterpreter.getNumAudioBlocks();
+
+                        if (esBuffer->size() < 6)  // Beware magic numbers....
+                        {
+                            // Data has been used up no more AU in this PES and they're not allowed to span PES packets
+                            terminate = true;
+                            frameBlockEnded = true; // Assume we got the last packet as we ran out of PES
+                        }
                     }
                 }
                 break;
@@ -299,36 +355,57 @@ namespace libr1k
             case SYNC_INCOMPLETE:
                 // We ran out of data reading the header
                 // save the current state and bail out.
-                remaingDataIncomplete = true;
                 terminate = true;
+                error = true;
                 break;
 
             case SYNC_NOT_FOUND:
             default:
                 terminate = true;
+                error = true;
                 break;
             }
         }
 
-        if (blksFound > 6)
+        bool removePESpacket = false;
+
+        if (frameBlockEnded)
         {
-            // This shouldn't happen - something went wrong
-            if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru - Gathered more than 6 blocks");
-            outputFrame = nullptr;
-            incompleteOutputFrame = nullptr;
-            incompleteBlks = 0;
-            return nullptr;
-        }
-        else if (blksFound < 6)
-        {
-            incompleteOutputFrame = outputFrame;
-            incompleteBlks = blksFound;
-            return nullptr;
+            // Check all substream units for 6 blocks
+            for (int i = 0; i < MAX_NUM_SUBSTREAM_TYPE_SLOTS; i++)
+            {
+                if (substreamsBlksFound[i] > 0 && substreamsBlksFound[i] != BLOCKS_PER_AU)
+                {
+                    error = true;
+                    break;
+                }
+            }
+            if (esBuffer->size() < 6)
+            {
+                // No more data left in this PES packet we should remove it from the queue
+                removePESpacket = true;
+            }
         }
         else
         {
-            return outputFrame;
+            if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "EAC3Decoder::%s - Didn't get enough data in this PES packet", __FUNCTION__);
+
+            // ran out of data in this PES packet should throw it away and start fresh next time
+            removePESpacket = true;
         }
+
+        if (error)
+        {
+            removePESpacket = true;
+            EAC3AccessUnitOutputFrame = nullptr; // we should return null as we don't have a correct frame
+        }
+
+        if (removePESpacket)
+        {
+            PESQueue.pop();
+        }
+
+        return EAC3AccessUnitOutputFrame;
     }
 
     AC3Decoder::SyncStatus EAC3Decoder::FindSyncWord(shared_ptr<DataBuffer_u8> buf)

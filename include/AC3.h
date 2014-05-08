@@ -175,9 +175,10 @@ namespace libr1k
         }
 
         virtual int CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
+        virtual int MoveDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
 
     private:
-
+        
     };
 	
     class AC3PacketHandler : public TSPacketHandler
