@@ -7,6 +7,7 @@
 #include <math.h>
 #include <memory>
 #include <iomanip>
+#include <sstream>
 
 #include "liba52_wrapper.h"
 
@@ -265,25 +266,58 @@ namespace libr1k
         EAC3AccessUnitOutputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
 
         esBuffer = PESQueue.front(); // get the current PES packet
-        
-        // Attempt to assemble a single AU from the buffer
-        //
-        // The PES can contain 1 or more AUs.
-        // One AU can contain 1 or more substreams
-        // The first substream will be streamtype 0 or 2 and substream id 0
-        // Finding a substream with streamtype 0 or 2 and substream id of 0 
-        // will indicate the start of a new AU and the end of the last if 
-        // we are already assembling one.
-        //
-        // esBuffer is a shared pointer to the first PES packet in the queue
-        // the packet is left in the PESqueue until it is finished with
-        // it may be needed for subsequent calls to this function
 
-        int substreamsBlksFound[MAX_NUM_SUBSTREAM_TYPE_SLOTS] = { 0 };
+       /*
+         Attempt to assemble a single AU from the buffer
+        
+         The PES can contain 1 or more AUs.
+         One AU can contain 1 or more substreams
+         The first substream will be streamtype 0 or 2 and substream id 0
+         Finding a substream with streamtype 0 or 2 and substream id of 0 
+         will indicate the start of a new AU and the end of the last if 
+         we are already assembling one.
+        
+         esBuffer is a shared pointer to the first PES packet in the queue
+         the packet is left in the PESqueue until it is finished with
+         it may be needed for subsequent calls to this function
+
+         Up to 8 independent substreams each followed by up to 8 
+         dependent substreams sequentially numbered.
+         independent substream = In
+         dependent substream = Dn
+         substreamsBlksFound =
+         { {I0, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I1, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I2, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I3, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I4, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I5, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I6, D0, D1, D2, D3, D4, D5, D6, D7},
+           {I7, D0, D1, D2, D3, D4, D5, D6, D7}
+         }  Each slot tracks the number of blocks found
+         We need to track this as the blocks can be fragmented
+         across the AU e.g.
+         First Substream - TYPE 0 ID 0 Blocks 6
+               Substream - TYPE 1 ID 0 Blocks 6
+               Substream - TYPE 1 ID 1 Blocks 6
+               Substream - TYPE 0 ID 1 Blocks 6
+               Substream - TYPE 1 ID 0 Blocks 6
+               Substream - TYPE 1 ID 1 Blocks 6
+               Substream - TYPE 0 ID 2 Blocks 6
+               Substream - TYPE 1 ID 0 Blocks 6
+               Substream - TYPE 1 ID 1 Blocks 6         would give the table         { {6,6,6,0,0,0,0,0,0},           {6,6,6,0,0,0,0,0,0},           {6,6,6,0,0,0,0,0,0},           {0,0,...         }
+         For the AU the total for I0 must be matched by I(1-7) and the total for
+         each dependant substream D0 must match its corresponding independant substream
+       */
+
+        int substreamsBlksFound[MAX_NUM_SUBSTREAM_IDS][MAX_NUM_SUBSTREAM_IDS + 1] = { 0 };
         bool terminate = false;
         bool error = false;
         bool frameBlockEnded = false;
+        int currentIndependentStream = -1;
+        int auSize = 0;
 
+        LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru collect AU");
         while (!terminate)
         {
             AC3Decoder::SyncStatus success = FindSyncWord(esBuffer);
@@ -297,20 +331,35 @@ namespace libr1k
                     packetInterpreter.preProcessHeader();
                     packetInterpreter.InterpretFrame();
 
-                    const int substream_ref = (MAX_NUM_SUBSTREAM_IDS * ((packetInterpreter.strmtyp == 1) ? 1 : 0)) + packetInterpreter.substreamid; // get a unique count for independent / dependent substreams
+                    const bool independentSubstream = (packetInterpreter.strmtyp == 0 || packetInterpreter.strmtyp == 2) ? true : false;
+                    if (independentSubstream)
+                    {
+                        currentIndependentStream = packetInterpreter.substreamid;
+                    }
                     
-                    if (substream_ref == 0)
+                    if (independentSubstream && currentIndependentStream == 0)
                     {
                         // First Independant substream
-                        if (substreamsBlksFound[substream_ref] < 6)
+                        if (substreamsBlksFound[currentIndependentStream][0] < 6)
                         {
-                            substreamsBlksFound[substream_ref] += packetInterpreter.getNumAudioBlocks();
+                            LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru First Substream - TYPE %d ID %d Blocks %d Frame Size %d bytes",
+                                                               packetInterpreter.strmtyp, 
+                                                               packetInterpreter.substreamid, 
+                                                               packetInterpreter.getNumAudioBlocks(),
+                                                               packetInterpreter.getFrameSize());
+
+                            substreamsBlksFound[currentIndependentStream][0] += packetInterpreter.getNumAudioBlocks();
                         }
                         else
                         {
                             // This should be the start of the next time period so we have received all
                             // the data for this 1536 sample period, the frame we have synced-to is for
                             // the next period
+                            LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru next AU Substream found - TYPE %d ID %d Blocks %d Frame Size %d bytes", 
+                                                               packetInterpreter.strmtyp, 
+                                                               packetInterpreter.substreamid,
+                                                               packetInterpreter.getNumAudioBlocks(),
+                                                               packetInterpreter.getFrameSize());
                             terminate = true;
                             frameBlockEnded = true;
                             break;
@@ -318,19 +367,33 @@ namespace libr1k
                     }
                     else
                     {
-                        substreamsBlksFound[substream_ref] += packetInterpreter.getNumAudioBlocks();
+                        LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Passthru       Substream - TYPE %d ID %d Blocks %d Frame Size %d bytes", 
+                                                            packetInterpreter.strmtyp, 
+                                                            packetInterpreter.substreamid,
+                                                            packetInterpreter.getNumAudioBlocks(),
+                                                            packetInterpreter.getFrameSize());
+                        if (independentSubstream)
+                        {
+                            substreamsBlksFound[currentIndependentStream][0] += packetInterpreter.getNumAudioBlocks();
+                        }
+                        else
+                        {
+                            substreamsBlksFound[currentIndependentStream][packetInterpreter.substreamid + 1] += packetInterpreter.getNumAudioBlocks();
+                        }
                     }
 
-                    if (substreamsBlksFound[packetInterpreter.substreamid] > 6)
+#if 0
+                    if (substreamsBlksFound[substream_ref] > 6)
                     {
                         // Error this shouldn't happen
                         terminate = true;
                         error = true;
                         break;
                     }
-
+#endif
                     // Is the whole frame available
                     const int frameSize = packetInterpreter.getFrameSize();
+                    auSize += frameSize;
                     if (esBuffer->size() < frameSize)
                     {
                         // Not enough data available
@@ -355,12 +418,14 @@ namespace libr1k
             case SYNC_INCOMPLETE:
                 // We ran out of data reading the header
                 // save the current state and bail out.
+                LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 SYNC_INCOMPLETE");
                 terminate = true;
                 error = true;
                 break;
 
             case SYNC_NOT_FOUND:
             default:
+                LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 SYNC_NOT_FOUND");
                 terminate = true;
                 error = true;
                 break;
@@ -371,15 +436,37 @@ namespace libr1k
 
         if (frameBlockEnded)
         {
-            // Check all substream units for 6 blocks
-            for (int i = 0; i < MAX_NUM_SUBSTREAM_TYPE_SLOTS; i++)
+            // Check all substream units for correct block configuration
+            LogMessage(Log::DEFAULT_LOG_LEVEL, "Number of blocks found per frame:");
+            
+
+            bool blockError = false;
+            const int blocksRequired = substreamsBlksFound[0][0];
+
+            for (int i = 0; i < MAX_NUM_SUBSTREAM_IDS; i++)
             {
-                if (substreamsBlksFound[i] > 0 && substreamsBlksFound[i] != BLOCKS_PER_AU)
-                {
-                    error = true;
+                if (substreamsBlksFound[i][0] == 0)
                     break;
+                stringstream ss("\tIndependent substream: ", ios_base::app | ios_base::out);
+                ss << i << " : ";
+
+                for (int k = 0; k <= MAX_NUM_SUBSTREAM_IDS; k++)
+                {
+                    ss << substreamsBlksFound[i][k] << ", ";
+                    if (substreamsBlksFound[i][k] > 0 && substreamsBlksFound[i][k] != blocksRequired)
+                    {
+                        blockError = true;
+                        error = true;
+                    }
                 }
+                LogMessage(Log::DEFAULT_LOG_LEVEL, ss.str());
             }
+
+            if (blockError)
+            {
+                LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3 Too many blocks found in this AU");
+            }
+
             if (esBuffer->size() < 6)
             {
                 // No more data left in this PES packet we should remove it from the queue
@@ -388,11 +475,13 @@ namespace libr1k
         }
         else
         {
-            if (logger) logger->AddMessage(Log::DEFAULT_LOG_LEVEL, "EAC3Decoder::%s - Didn't get enough data in this PES packet", __FUNCTION__);
+            LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3Decoder::%s - Didn't get enough data in this PES packet", __FUNCTION__);
 
             // ran out of data in this PES packet should throw it away and start fresh next time
             removePESpacket = true;
         }
+
+        LogMessage(Log::DEFAULT_LOG_LEVEL, "EAC3Decoder::%s AU size = %d", __FUNCTION__, auSize);
 
         if (error)
         {
@@ -471,7 +560,7 @@ namespace libr1k
 	{
         // Need to use all the bytes in the PES packet
         // 
-
+        LogMessage(Log::DEFAULT_LOG_LEVEL, "PES Packet : PTS %d", buf->PTS);
 		// Put data into ES buffer
 
 		uint8_t *PES_data = buf->GetPESData();

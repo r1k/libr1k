@@ -75,41 +75,40 @@ namespace libr1k
     {
     public:
         static const int MAX_NUM_SUBSTREAM_IDS = 8; // Hopefully big enough
-        static const int MAX_NUM_STREAMTYPES = 2; // Independent/Dependent can have Independent 
+        static const int MAX_NUM_STREAMTYPES = 3; // Independent/Dependent can have Independent 
                                                   // substream 0 and dependent substream 0 
                                                   // both need 6 blocks of data
-        static const int MAX_NUM_SUBSTREAM_TYPE_SLOTS = MAX_NUM_STREAMTYPES * MAX_NUM_SUBSTREAM_IDS;
         static const int BLOCKS_PER_AU = 6;
         // For instanciation e.g.
         // new EAC3Decoder(esPacketDecoder::CREATE_DECODER)
 
-        EAC3Decoder(const flag_t createDecoder) :
-            AC3Decoder()
+        EAC3Decoder(const flag_t createDecoder, shared_ptr<Log> log = nullptr) :
+            AC3Decoder(), logger(log)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
-        EAC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
-            AC3Decoder(pData, dataLength)
+        EAC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder, shared_ptr<Log> log = nullptr) :
+            AC3Decoder(pData, dataLength), logger(log)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
-        EAC3Decoder(shared_ptr<DataBuffer_u8> const pData, const flag_t createDecoder) :
-            AC3Decoder(pData)
+        EAC3Decoder(shared_ptr<DataBuffer_u8> const pData, const flag_t createDecoder, shared_ptr<Log> log = nullptr) :
+            AC3Decoder(pData), logger(log)
         {
             au_frame_decoder = shared_ptr<au_eac3_t>(new au_eac3_t());
         }
 
         // Constructors to call when inheriting from this class to make sure decoder isn't created
-        EAC3Decoder() : 
-            AC3Decoder() { }
+        EAC3Decoder(shared_ptr<Log> log = nullptr) :
+            AC3Decoder(), logger(log) { }
 
-        EAC3Decoder(uint8_t * const pData, const int dataLength) :
-            AC3Decoder(pData, dataLength) { }
+        EAC3Decoder(uint8_t * const pData, const int dataLength, shared_ptr<Log> log = nullptr) :
+            AC3Decoder(pData, dataLength), logger(log) { }
 
-        EAC3Decoder(shared_ptr<DataBuffer_u8> const pData) :
-            AC3Decoder(pData) { }
+        EAC3Decoder(shared_ptr<DataBuffer_u8> const pData, shared_ptr<Log> log = nullptr) :
+            AC3Decoder(pData), logger(log) { }
 
         virtual ~EAC3Decoder() {}
 
@@ -137,10 +136,33 @@ namespace libr1k
             PESQueue.push(localBuffer);
         }
 
-    protected:
-        
-    private:
+        void LogMessage(const int errorLevel, const char *message, ...)
+        {
+            if (logger != nullptr)
+            {
+                static const int bufLength = 2000;
+                char formatted_string[bufLength];
 
+                va_list args;
+                va_start(args, message);
+                vsnprintf_s(formatted_string, bufLength, message, args);
+                logger->AddMessage(errorLevel, formatted_string);
+                va_end(args);
+            }
+        }
+
+        void LogMessage(const int errorLevel, string message)
+        {
+            if (logger != nullptr)
+            {
+                logger->AddMessage(errorLevel, message);
+            }
+        }
+
+    protected:
+
+    private:
+        shared_ptr<Log> logger;
         queue<shared_ptr<DataBuffer_u8>> PESQueue;
         
     };
@@ -160,7 +182,7 @@ namespace libr1k
         bool init() 
         {
             if (esDecoder == nullptr)
-                esDecoder = std::shared_ptr<EAC3Decoder>(new EAC3Decoder(esPacketDecoder::CREATE_DECODER));
+                esDecoder = std::shared_ptr<EAC3Decoder>(new EAC3Decoder(esPacketDecoder::CREATE_DECODER, LogFile));
 
             return (esDecoder != nullptr);
         }

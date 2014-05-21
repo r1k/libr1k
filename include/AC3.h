@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <cstdarg>
 #include "pcr.h"
 #include "Log.h"
 
@@ -109,12 +110,12 @@ namespace libr1k
         static const char *bsmod_str[];
         static const char *acmod_str[];
         static const char *cmixlev_str[];
-        static const char *surmixlev_str[];
-        static const char *dsurmod_str[];
-        static const char *on_off_str[];
-        static const char *roomtyp_str[];
+static const char *surmixlev_str[];
+static const char *dsurmod_str[];
+static const char *on_off_str[];
+static const char *roomtyp_str[];
     };
- 
+
     class AC3Decoder : public esPacketDecoder
     {
 
@@ -129,7 +130,7 @@ namespace libr1k
             esPacketDecoder()
         {
             au_frame_decoder = shared_ptr<au_ac3_t>(new au_ac3_t());
-        }       
+        }
         AC3Decoder(uint8_t * const pData, const int dataLength, const flag_t createDecoder) :
             esPacketDecoder(pData, dataLength)
         {
@@ -160,10 +161,10 @@ namespace libr1k
         }
 
         shared_ptr<au_ac3_t> GetDecoder()
-        { 
+        {
             return static_pointer_cast<au_ac3_t>(au_frame_decoder);
         }
-        
+
         virtual std::shared_ptr<SampleBuffer> DecodeFrame()
         {
             return nullptr;
@@ -178,20 +179,20 @@ namespace libr1k
         virtual int MoveDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
 
     private:
-        
+
     };
-	
+
     class AC3PacketHandler : public TSPacketHandler
-	{
-	public:
-		AC3PacketHandler(ofstream *str, bool Debug_on = false);
+    {
+    public:
+        AC3PacketHandler(ofstream *str, bool Debug_on = false);
         ~AC3PacketHandler(void) {}
 
-		virtual void PESDecode(PESPacket_t *buf);
+        virtual void PESDecode(PESPacket_t *buf);
 
-		void SetDebugOutput(bool On);
+        void SetDebugOutput(bool On);
 
-		int FrameCount;
+        int FrameCount;
 
         bool init()
         {
@@ -208,6 +209,29 @@ namespace libr1k
             return static_pointer_cast<AC3Decoder>(esDecoder);
         }
 
+        void LogMessage(const int errorLevel, const char *message, ...)
+        {
+            if (LogFile != nullptr)
+            {
+                static const int bufLength = 2000;
+                char formatted_string[bufLength];
+
+                va_list args;
+                va_start(args, message);
+                vsnprintf_s(formatted_string, bufLength, message, args);
+                LogFile->AddMessage(errorLevel, formatted_string);
+                va_end(args);
+            }
+        }
+
+        void LogMessage(const int errorLevel, string message)
+        {
+            if (LogFile != nullptr)
+            {
+                LogFile->AddMessage(errorLevel, message);
+            }
+        }
+
 	protected:
 
         ofstream *outStream;
@@ -216,6 +240,7 @@ namespace libr1k
 
         bool DebugOn;
         bool PacketSpansPES;
+
         shared_ptr<Log> LogFile;
 
 	private:
