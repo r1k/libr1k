@@ -13,27 +13,25 @@ namespace libr1k
 		enum { PayloadSize = 184, Ts188Byte = 188, Ts204Byte = 204};
 		enum { PATPID = 0, NULLPID = 8191 };
 
-		unsigned int GetPID();
-		void SetPID( unsigned int );
+		uint16_t GetPID() const;
+		void SetPID( const uint16_t );
 		
 		// Continuity counter
-		unsigned int GetCC();
-		void SetCC( unsigned int );
+		uint8_t GetCC() const;
+		void SetCC( const uint8_t );
 
 		// Payload Unit Start Indicator
-		unsigned int GetPUSI();
-		void SetPUSI( unsigned int );
+		uint8_t GetPUSI() const;
+        void SetPUSI(const bool);
 
-		unsigned int GetAdaptationFlags( void );
+		uint8_t GetAdaptationFlags( void ) const;
 
-		bool AdaptationFieldPresent ( void );
-		bool PayloadPresent ( void );
-
-		bool AdjustPTS ( long long Shift );
-		
-		int GetPacketSize ( void ) { return packetSize; }
-		int GetPayload( const uint8_t **payload_ptr);
-		void ReplacePayload ( uint8_t *newPayload );
+		bool AdaptationFieldPresent ( void ) const;
+		bool PayloadPresent ( void ) const;
+        		
+		int  GetPacketSize ( void ) const { return packetSize; }
+		int  GetPayload( const uint8_t **payload_ptr);
+		void SetPayload ( const uint8_t * const newPayload );
 
 		void SetPacket ( uint8_t *data, int packetSze );
 		void SetPacketNumber ( const unsigned long pNum );
@@ -47,17 +45,18 @@ namespace libr1k
 		TransportPacket () : packetSize(0), Payload(NULL), payloadSize(0), packetNumber(0) {};
 		~TransportPacket() {};
 
-		int packetSize;
+		int      packetSize;
 		uint8_t* Payload;
-		int payloadSize;
-        uint8_t raw[204];
-		unsigned long packetNumber;
+		int      payloadSize;
+        uint8_t  raw[204];
+		uint64_t packetNumber;
+
 	private:
 		void findPayload( void );
 	};	
 
     int fwritePacket(TransportPacket *thispacket, FILE **outputfile);
-    int freadPacket(TransportPacket *thispacket, FILE **inputfile);
+    int freadPacket(TransportPacket *const thispacket, FILE *const inputfile);
 
-    void fgetTSsync(FILE *infile, int *packet_size);
+    int fgetTSsync(FILE *const);
 }

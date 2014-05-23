@@ -1,13 +1,13 @@
 #pragma once
 
 #include "libr1k.h"
-#include "_no_copy.h"
+#include "base\_no_copy.h"
 #include "DataBuffer.h"
 #include "SampleBuffer.h"
 #include "Types.h"
 #include <queue>
 #include <ostream>
-#include "Log.h"
+#include "utils\Log.h"
 
 namespace libr1k
 {

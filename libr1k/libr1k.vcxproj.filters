@@ -21,16 +21,7 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\_no_copy.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\AC3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\bitOperators.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\BitReverse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\BitStream.h">
@@ -67,9 +58,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\libr1k.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\LPCMPacketHandler.h">
@@ -123,13 +111,31 @@
     <ClInclude Include="..\include\AudioDSPFilters_Goertzel_dev.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\BigNum.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\EAC3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\TeletextDecode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\BigNum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\bitOperators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\BitReverse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\crc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\base\_no_copy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\base\_runnable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -213,6 +219,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\TeletextDecode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\_runnable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

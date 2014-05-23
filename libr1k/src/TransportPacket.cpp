@@ -8,7 +8,6 @@ namespace libr1k
 		this->SetPacket ( pkt, packetSze );
 	}
 
-
     void TransportPacket::SetPacketNumber ( const unsigned long pNum )
     {
         this->packetNumber = pNum;
@@ -46,17 +45,17 @@ namespace libr1k
 		}
 	}
 
-	unsigned int TransportPacket::GetAdaptationFlags( void )
+	uint8_t TransportPacket::GetAdaptationFlags( void ) const
 	{
 	    return (raw[3] & 0x30) >> 4;
 	}
 
-	bool TransportPacket::AdaptationFieldPresent ( void )
+	bool TransportPacket::AdaptationFieldPresent ( void ) const
 	{
 		return (raw[3] & 0x20) ? true : false;
 	}
 
-    bool TransportPacket::PayloadPresent ( void )
+    bool TransportPacket::PayloadPresent ( void ) const
     {
         return (raw[3] & 0x10) ? true : false;
     }
@@ -73,41 +72,36 @@ namespace libr1k
 		return;
 	}
 
-	unsigned int TransportPacket::GetPID()
+	uint16_t TransportPacket::GetPID() const
 	{
 		unsigned int temp = 0;
-		temp = raw[1] & 0x1f;
-		temp = temp << 8;
-		
-		temp = temp | (0xff & raw[2]);
-
-		return temp;
+		temp = (raw[1] & 0x1f) << 8;
+		return temp | (0xff & raw[2]);
 	}
 
-	void TransportPacket::SetPID( unsigned int PID)
+	void TransportPacket::SetPID( const uint16_t PID)
 	{
 		raw[1] = (raw[1] & 0x70) | (( PID & 0x01f00 ) >> 8 );
 		raw[2] = PID & 0x0ff;
-		return;
 	}
 
-	unsigned int TransportPacket::GetCC()
+	uint8_t TransportPacket::GetCC() const
 	{
 		return raw[3] & 0x0f;
 	}
 
-	void TransportPacket::SetCC( unsigned int CC)
+    void TransportPacket::SetCC(const uint8_t CC)
 	{
 		raw[3] = (raw[3] & 0xf0) & (CC & 0x0f);
 		return;
 	}
 
-	unsigned int TransportPacket::GetPUSI()
+	uint8_t TransportPacket::GetPUSI() const
 	{
 		return ((raw[1] & 0x40) ? 1 : 0);
 	}
 
-	void TransportPacket::SetPUSI( unsigned int NewPUSI)
+	void TransportPacket::SetPUSI( const bool NewPUSI)
 	{
 		if (NewPUSI)
 		{
@@ -120,7 +114,7 @@ namespace libr1k
 		return;
 	}
 
-	void TransportPacket::ReplacePayload ( uint8_t *newPayload )
+	void TransportPacket::SetPayload ( const uint8_t *const newPayload )
 	{
 		memcpy(this->Payload, newPayload, sizeof(uint8_t) * payloadSize);
 		return;
@@ -131,7 +125,6 @@ namespace libr1k
 		*payload_ptr = this->Payload;
 		return this->payloadSize;
 	}
-
 	
 	bool TransportPacket::ConvertTo188 ( void )
 	{
@@ -146,18 +139,17 @@ namespace libr1k
 		return true;
 	}
 
-
-	int fwritePacket(TransportPacket *thispacket,FILE **outputfile)
+	int fwritePacket(TransportPacket *const thispacket, FILE * const outputfile)
 	{
 		int temp = 0;
 		if (thispacket == NULL) return 0;
-		clearerr(*outputfile);
+		clearerr(outputfile);
 		while (temp < thispacket->packetSize)
 		{
-			fputc(thispacket->raw[temp], *outputfile);
+			fputc(thispacket->raw[temp], outputfile);
 			++temp;
 		
-			if(ferror(*outputfile) != 0)
+			if(ferror(outputfile) != 0)
 			{
 				return -1;
 			}
@@ -165,20 +157,20 @@ namespace libr1k
 		return thispacket->packetSize;
 	}
 
-	int freadPacket(TransportPacket *thispacket,FILE **inputfile)
+	int freadPacket(TransportPacket *const thispacket, FILE *const inputfile)
 	{
 		int temp = 0;
 		if (thispacket == NULL) return 0;
-		while( (!feof (*inputfile)) && (temp < thispacket->packetSize) )
+		while( (!feof (inputfile)) && (temp < thispacket->packetSize) )
 		{
-			thispacket->raw[temp] = (unsigned char) fgetc(*inputfile);
+			thispacket->raw[temp] = (unsigned char) fgetc(inputfile);
 			++temp;
 		}
 		return temp;
 	}
 
 	#define SYNC_LENGTH	3
-	void fgetTSsync ( FILE *infile, int *packet_size )
+	int fgetTSsync ( FILE *const infile )
 	{
 		int	chargot = 0;
 		int	i = 0, count_204 = 0, count_188 = 0;
@@ -214,7 +206,9 @@ namespace libr1k
 			}
 		}
 
-		if ( count_204 || count_188 ) *packet_size = ( count_204 != 0 ) ? 204 : 188;
+		if ( count_204 || count_188 ) 
+            return ( count_204 != 0 ) ? 204 : 188;
+        return -1;
 	}
 
 }

@@ -1,6 +1,6 @@
 #include "AC3.h"
-#include "bitOperators.h"
-#include "crc.h"
+#include "utils\bitOperators.h"
+#include "utils\crc.h"
 #include "BitStreamReader.h"
 #include "pcr.h"
 #include <math.h>

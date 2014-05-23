@@ -4,8 +4,8 @@
 #include "TSPacketHandler.h"
 #include "TransportPacket.h"
 #include "WAVFile.h"
-#include "Log.h"
-#include "BitReverse.h"
+#include "utils\Log.h"
+#include "utils\BitReverse.h"
 
 #include <iostream>
 #include <fstream>

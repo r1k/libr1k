@@ -20,14 +20,14 @@ namespace libr1k
 			payload(NULL),
 			Started(false),
 			Complete(false)
-			{};
-		~PESPacket_t(void)
-		{
-		}
+			{}
+
+		~PESPacket_t(void) {}
+
 		unsigned int type;
-		unsigned long long PTS;
+		uint64_t PTS;
 		int	pesPacketLength;
-		vector<unsigned char> payload;
+		vector<uint8_t> payload;
 		bool Started;
 		bool Complete;
 
@@ -43,7 +43,7 @@ namespace libr1k
             Started = true;
         }
 
-		int GetCurrentDataLength()
+		int GetCurrentDataLength() const
 		{
             return payload.size();
 		}
@@ -53,7 +53,8 @@ namespace libr1k
             if (payload.size() > 10)
             {
                 // The start of the data is the number of bytes in the PES header length field
-                return &(payload[9]) + payload[8]; 
+                const int size = payload[8];
+                return &(payload[9 + size]);
             }
             else
             {

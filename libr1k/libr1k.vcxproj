@@ -89,9 +89,8 @@
     <ClInclude Include="..\include\AudioDSPFilters.h" />
     <ClInclude Include="..\include\AudioDSPFilters_Goertzel.h" />
     <ClInclude Include="..\include\AudioDSPFilters_Goertzel_dev.h" />
-    <ClInclude Include="..\include\BigNum.h" />
-    <ClInclude Include="..\include\bitOperators.h" />
-    <ClInclude Include="..\include\BitReverse.h" />
+    <ClInclude Include="..\include\base\_no_copy.h" />
+    <ClInclude Include="..\include\base\_runnable.h" />
     <ClInclude Include="..\include\BitStream.h" />
     <ClInclude Include="..\include\BitStreamReader.h" />
     <ClInclude Include="..\include\CommandLineParse.h" />
@@ -106,7 +105,6 @@
     <ClInclude Include="..\include\fileWriter.h" />
     <ClInclude Include="..\include\LA_debug.h" />
     <ClInclude Include="..\include\libr1k.h" />
-    <ClInclude Include="..\include\Log.h" />
     <ClInclude Include="..\include\LPCMPacketHandler.h" />
     <ClInclude Include="..\include\maths.h" />
     <ClInclude Include="..\include\profiler.h" />
@@ -118,8 +116,12 @@
     <ClInclude Include="..\include\PTSPacketHandler.h" />
     <ClInclude Include="..\include\TransportPacket.h" />
     <ClInclude Include="..\include\TSPacketHandler.h" />
+    <ClInclude Include="..\include\utils\BigNum.h" />
+    <ClInclude Include="..\include\utils\bitOperators.h" />
+    <ClInclude Include="..\include\utils\BitReverse.h" />
+    <ClInclude Include="..\include\utils\crc.h" />
+    <ClInclude Include="..\include\utils\Log.h" />
     <ClInclude Include="..\include\WAVFile.h" />
-    <ClInclude Include="..\include\_no_copy.h" />
     <ClInclude Include="internal_includes\liba52_wrapper.h" />
     <ClInclude Include="src\targetver.h" />
     <ClInclude Include="targetver.h" />
@@ -152,6 +154,12 @@
     <ClCompile Include="src\TransportPacket.cpp" />
     <ClCompile Include="src\TSPacketHandler.cpp" />
     <ClCompile Include="src\WAVFile.cpp" />
+    <ClCompile Include="src\_runnable.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\3rdParty\a52dec-0.7.4\vc++\liba52.vcxproj">
+      <Project>{67b7bea9-e511-4ce2-9c6b-a06afe6a4e74}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

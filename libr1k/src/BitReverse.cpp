@@ -1,5 +1,5 @@
-#include "BitReverse.h"
-#include "bitOperators.h"
+#include "utils\BitReverse.h"
+#include "utils\bitOperators.h"
 
 namespace libr1k
 {

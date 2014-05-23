@@ -3,8 +3,8 @@
 #include "libr1k.h"
 #include "TSPacketHandler.h"
 #include "TransportPacket.h"
-#include "Log.h"
-#include "BitReverse.h"
+#include "utils\Log.h"
+#include "utils\BitReverse.h"
 
 #include <iostream>
 #include <fstream>

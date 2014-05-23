@@ -1,7 +1,7 @@
 #include "AudioDSPFilters_Goertzel_dev.h"
 #include "Exceptions.h"
 #include "maths.h"
-#include "BigNum.h"
+#include "utils\BigNum.h"
 #include <memory>
 #include <algorithm>
 

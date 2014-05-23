@@ -1,7 +1,7 @@
 #include "AC3.h"
 #include "EAC3.h"
-#include "bitOperators.h"
-#include "crc.h"
+#include "utils\bitOperators.h"
+#include "utils\crc.h"
 #include "BitStreamReader.h"
 #include "pcr.h"
 #include <math.h>
@@ -305,7 +305,13 @@ namespace libr1k
                Substream - TYPE 1 ID 1 Blocks 6
                Substream - TYPE 0 ID 2 Blocks 6
                Substream - TYPE 1 ID 0 Blocks 6
-               Substream - TYPE 1 ID 1 Blocks 6         would give the table         { {6,6,6,0,0,0,0,0,0},           {6,6,6,0,0,0,0,0,0},           {6,6,6,0,0,0,0,0,0},           {0,0,...         }
+               Substream - TYPE 1 ID 1 Blocks 6
+         would give the table
+         { {6,6,6,0,0,0,0,0,0},
+           {6,6,6,0,0,0,0,0,0},
+           {6,6,6,0,0,0,0,0,0},
+           {0,0,...
+         }
          For the AU the total for I0 must be matched by I(1-7) and the total for
          each dependant substream D0 must match its corresponding independant substream
        */

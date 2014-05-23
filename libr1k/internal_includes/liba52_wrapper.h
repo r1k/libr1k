@@ -1,6 +1,6 @@
 #pragma once
 
-#include "_no_copy.h"
+#include "base\_no_copy.h"
 #include "Types.h"
 #include "DataBuffer.h"
 

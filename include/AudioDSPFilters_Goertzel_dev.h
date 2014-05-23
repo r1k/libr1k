@@ -1,7 +1,7 @@
 #pragma once
 
 #include "libr1k.h"
-#include "_no_copy.h"
+#include "base\_no_copy.h"
 #include "AudioDSPFilters.h"
 #include <vector>
 
@@ -11,7 +11,8 @@ namespace libr1k
     // Fixed point implementation testing framework
     // see this document for notation
     // http://www.digitalsignallabs.com/fp.pdf
-    // Fixed-Point Arithmetic: An Introduction by Randy Yates    //
+    // Fixed-Point Arithmetic: An Introduction by Randy Yates
+    //
     // A(x,y) means a signed value using x bits for int part and y for mantissa
     // there fore there required number of bits to store is 1+x+y
     // U(x,y) means an unsigned value using x bits for int part and y for mantissa

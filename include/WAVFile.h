@@ -3,7 +3,7 @@
 #include <fstream>
 #include "Types.h"
 #include "libr1k.h"
-#include "_no_copy.h"
+#include "base\_no_copy.h"
 #include "SampleBuffer.h"
 
 using namespace std;
