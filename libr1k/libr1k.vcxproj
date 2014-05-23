@@ -103,6 +103,7 @@
     <ClInclude Include="..\include\maths.h" />
     <ClInclude Include="..\include\profiler.h" />
     <ClInclude Include="..\include\SampleBuffer.h" />
+    <ClInclude Include="..\include\TeletextDecode.h" />
     <ClInclude Include="..\include\Types.h" />
     <ClInclude Include="..\include\pcr.h" />
     <ClInclude Include="..\include\PESPacketHandler.h" />
@@ -139,6 +140,7 @@
     <ClCompile Include="src\PESPacketHandler.cpp" />
     <ClCompile Include="src\PTSPacketHandler.cpp" />
     <ClCompile Include="src\SampleBuffer.cpp" />
+    <ClCompile Include="src\TeletextDecode.cpp" />
     <ClCompile Include="src\TransportPacket.cpp" />
     <ClCompile Include="src\TSPacketHandler.cpp" />
     <ClCompile Include="src\WAVFile.cpp" />
