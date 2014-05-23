@@ -40,10 +40,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\work\src\libr1k\include;C:\work\src\libr1k\libr1k\internal_includes;C:\work\src\libr1k\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)include;$(SolutionDir)libr1k\internal_includes;$(SolutionDir)3rdParty\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)lib\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\work\src\libr1k\include;C:\work\src\libr1k\libr1k\internal_includes;C:\work\src\libr1k\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)include;$(SolutionDir)libr1k\internal_includes;$(SolutionDir)3rdParty\a52dec-0.7.4\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)lib\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -56,6 +58,9 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -72,6 +77,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib\release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -144,14 +152,6 @@
     <ClCompile Include="src\TransportPacket.cpp" />
     <ClCompile Include="src\TSPacketHandler.cpp" />
     <ClCompile Include="src\WAVFile.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\a52dec-0.7.4\vc++\liba52.vcxproj">
-      <Project>{67b7bea9-e511-4ce2-9c6b-a06afe6a4e74}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\a52dec-0.7.4\vc++\libao.vcxproj">
-      <Project>{0f5e3301-4529-48d3-8593-97c1c51336ad}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
