@@ -77,6 +77,11 @@ namespace libr1k
             return _data.size(); 
         }
 
+        virtual void clear()
+        {
+            return _data.clear();
+        }
+
     private:
         T_vect _data;
 
