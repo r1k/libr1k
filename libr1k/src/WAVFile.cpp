@@ -122,6 +122,11 @@ namespace libr1k
 
     WAVFile::~WAVFile(void)
     {
+        Close();
+    }
+
+    void WAVFile::Close()
+    {
         if (output)
         {
 #ifdef SIMPLE_WAV
@@ -156,6 +161,7 @@ namespace libr1k
         {
             input->close();
         }
+
     }
 
     void WAVFile::GetParams(wav_params *wv_params)
@@ -304,6 +310,7 @@ namespace libr1k
         int8_t byte;
         uint32_t word = sample;
 
+#if 0
         switch (local_params.bit_depth)
         {
         case 20:// 20 bits stored in the lowest 20 bits needs to be output as 24 bit with data shifted << 4
@@ -315,6 +322,7 @@ namespace libr1k
             word = word >> 16;
             break;
         }
+#endif
 
         for (int index = 0; index < ByteShift; index++)
         {

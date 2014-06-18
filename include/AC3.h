@@ -45,6 +45,7 @@ namespace libr1k
 
         enum { SYNCWORD = 0xB77 };
         enum { BSID = 8 };
+        enum { frmsizcod_max = 37 };
 
     protected:
 
@@ -56,7 +57,7 @@ namespace libr1k
 
         shared_ptr<liba52_wrapper> liba52;
                
-        enum { frmsizcod_max = 37 };
+        
         static const int frmsizcod_table[3][frmsizcod_max + 1];
         static const int bitrate_table[frmsizcod_max + 1];
         enum { additional_bsi_max = 2000 };
@@ -110,10 +111,10 @@ namespace libr1k
         static const char *bsmod_str[];
         static const char *acmod_str[];
         static const char *cmixlev_str[];
-static const char *surmixlev_str[];
-static const char *dsurmod_str[];
-static const char *on_off_str[];
-static const char *roomtyp_str[];
+        static const char *surmixlev_str[];
+        static const char *dsurmod_str[];
+        static const char *on_off_str[];
+        static const char *roomtyp_str[];
     };
 
     class AC3Decoder : public esPacketDecoder
@@ -152,7 +153,7 @@ static const char *roomtyp_str[];
 
         virtual ~AC3Decoder() {}
 
-        virtual SyncStatus FindSyncWord(shared_ptr<DataBuffer_u8>) { return SYNC_NOT_FOUND; }
+        virtual SyncStatus FindSyncWord(shared_ptr<DataBuffer_u8>);
 
         bool init()
         {
@@ -170,13 +171,33 @@ static const char *roomtyp_str[];
             return nullptr;
         }
 
-        virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru()
-        {
-            return nullptr;
-        }
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru();
 
         virtual int CopyDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
         virtual int MoveDataToOutputFrame(shared_ptr<DataBuffer_u8> src, shared_ptr<SampleBuffer> dst, int numBytes);
+
+        void LogMessage(const int errorLevel, const char *message, ...)
+        {
+            if (logger != nullptr)
+            {
+                static const int bufLength = 2000;
+                char formatted_string[bufLength];
+
+                va_list args;
+                va_start(args, message);
+                vsnprintf_s(formatted_string, bufLength, message, args);
+                logger->AddMessage(errorLevel, formatted_string);
+                va_end(args);
+            }
+        }
+
+        void LogMessage(const int errorLevel, string message)
+        {
+            if (logger != nullptr)
+            {
+                logger->AddMessage(errorLevel, message);
+            }
+        }
 
     private:
 
@@ -186,7 +207,10 @@ static const char *roomtyp_str[];
     {
     public:
         AC3PacketHandler(ofstream *str, bool Debug_on = false);
-        ~AC3PacketHandler(void) {}
+        ~AC3PacketHandler(void) 
+        {
+            OutputWAV->Close();
+        }
 
         virtual void PESDecode(PESPacket_t *buf);
 
@@ -199,7 +223,7 @@ static const char *roomtyp_str[];
             if (esDecoder == nullptr)
                 esDecoder = std::shared_ptr<AC3Decoder>(new AC3Decoder(esPacketDecoder::CREATE_DECODER));
 
-            esDecoder->GetDecoder()->write_csv_header(*outStream);
+            // esDecoder->GetDecoder()->write_csv_header(*outStream);
 
             return (esDecoder != nullptr);
         }

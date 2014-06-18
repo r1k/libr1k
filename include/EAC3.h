@@ -136,29 +136,6 @@ namespace libr1k
             PESQueue.push(localBuffer);
         }
 
-        void LogMessage(const int errorLevel, const char *message, ...)
-        {
-            if (logger != nullptr)
-            {
-                static const int bufLength = 2000;
-                char formatted_string[bufLength];
-
-                va_list args;
-                va_start(args, message);
-                vsnprintf_s(formatted_string, bufLength, message, args);
-                logger->AddMessage(errorLevel, formatted_string);
-                va_end(args);
-            }
-        }
-
-        void LogMessage(const int errorLevel, string message)
-        {
-            if (logger != nullptr)
-            {
-                logger->AddMessage(errorLevel, message);
-            }
-        }
-
     protected:
 
     private:

@@ -83,6 +83,8 @@ namespace libr1k
 		WAVFile(ifstream *instr);
 		~WAVFile ();
 
+        void Close();
+
         virtual void WriteSample(const uint32_t sample);
         virtual void WriteSample16(const uint16_t sample);
 
