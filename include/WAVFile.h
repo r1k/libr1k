@@ -96,6 +96,8 @@ namespace libr1k
         void ReadSamples(SampleBuffer &buf, const int num);
         void ReadSamples(SampleBuffer_norm &buf, const int num);
 
+        void WriteSamples(SampleBuffer &buf);
+
 		unsigned int ReadCount;
 		int writtenCount;
 

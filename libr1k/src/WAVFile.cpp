@@ -564,4 +564,13 @@ namespace libr1k
             *dst++ = ReadSample() / divisor;
         }
     }
+
+    void WAVFile::WriteSamples(SampleBuffer &buf)
+    {
+        for (int i = 0; i < buf.size(); i++)
+        {
+            WriteSample(buf.get(i));
+        }
+        buf.clear();
+    }
 }
