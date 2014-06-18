@@ -585,7 +585,7 @@ namespace libr1k
 
             int outputSubFrames = 0;
             int sourceSubFrames = 0;
-            const AES_Header AES(24, dataType, NumSubFrames);
+            const AES_Header AES(16, dataType, NumSubFrames);
 
             while (sourceSubFrames < decoded_frame->size() && outputSubFrames < NumSubFrames)
             {
