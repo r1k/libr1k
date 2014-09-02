@@ -166,10 +166,7 @@ namespace libr1k
             return static_pointer_cast<au_ac3_t>(au_frame_decoder);
         }
 
-        virtual std::shared_ptr<SampleBuffer> DecodeFrame()
-        {
-            return nullptr;
-        }
+        virtual std::shared_ptr<SampleBuffer> DecodeFrame();
 
         virtual std::shared_ptr<SampleBuffer> DecodeFrame_PassThru();
 
@@ -199,6 +196,7 @@ namespace libr1k
             }
         }
 
+        shared_ptr<au_ac3_t> lastAC3Frame;
     private:
 
     };
@@ -206,10 +204,11 @@ namespace libr1k
     class AC3PacketHandler : public TSPacketHandler
     {
     public:
-        AC3PacketHandler(ofstream *str, bool Debug_on = false);
+        AC3PacketHandler(ofstream *str, bool Debug_on = false, bool passThru = false);
         ~AC3PacketHandler(void) 
         {
-            OutputWAV->Close();
+            if (Pass_thru)
+                OutputWAV->Close();
         }
 
         virtual void PESDecode(PESPacket_t *buf);
@@ -223,7 +222,8 @@ namespace libr1k
             if (esDecoder == nullptr)
                 esDecoder = std::shared_ptr<AC3Decoder>(new AC3Decoder(esPacketDecoder::CREATE_DECODER));
 
-            // esDecoder->GetDecoder()->write_csv_header(*outStream);
+            if (!Pass_thru)
+                esDecoder->GetDecoder()->write_csv_header(*outStream);
 
             return (esDecoder != nullptr);
         }
@@ -264,6 +264,7 @@ namespace libr1k
 
         bool DebugOn;
         bool PacketSpansPES;
+        bool Pass_thru;
 
         shared_ptr<Log> LogFile;
 

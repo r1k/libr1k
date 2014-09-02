@@ -119,6 +119,8 @@ namespace libr1k
             return static_pointer_cast<esPacketDecoder>(esDecoder);
         }
 
+        virtual void SetStreamID(uint8_t id) { stream_id = id; }
+
     protected:
 
         virtual bool			FindPESHeaderAndGetPTS(const uint8_t  *buf, unsigned long long *PTS);

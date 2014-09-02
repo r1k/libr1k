@@ -233,15 +233,15 @@ namespace libr1k
 		bsr.GetXBits(&bsmod, 3);
 		bsr.GetXBits(&acmod, 3);
 
-		if ((acmod & 0x01) && (acmod != 0x0))
+		if ((acmod & 0x01) && (acmod != 0x1))
 		{
 			bsr.GetXBits(&cmixlev, 2);
 		}
-		else if (acmod & 0x04)
+		if (acmod & 0x04)
 		{
 			bsr.GetXBits(&surmixlev, 2);
 		}
-		else if (acmod == 0x02)
+		if (acmod == 0x02)
 		{
 			bsr.GetXBits(&dsurmod, 2);
 		}
@@ -682,8 +682,82 @@ namespace libr1k
 
         return AC3AccessUnitOutputFrame;
     }
+
+    std::shared_ptr<SampleBuffer> AC3Decoder::DecodeFrame()
+    {
+        if (esBuffer->size() == 0)
+        {
+            return nullptr;
+        }
+
+        shared_ptr<SampleBuffer> AC3AccessUnitOutputFrame;
+        AC3AccessUnitOutputFrame = std::shared_ptr<SampleBuffer>(new SampleBuffer());
+
+        bool error = false;
+        bool incomplete = false;
+        int auSize = 0;
+
+        LogMessage(Log::DEFAULT_LOG_LEVEL, "AC3 Passthru collect AU");
+
+        AC3Decoder::SyncStatus success = FindSyncWord(esBuffer);
+
+        shared_ptr<au_ac3_t> packetInterpreter;
+        switch (success)
+        {
+            case SYNC_FOUND:
+                {
+                    // Interpret the frame
+                    packetInterpreter.reset(new au_ac3_t( esBuffer.get() )  );
+                    packetInterpreter->preProcessHeader();
+                    packetInterpreter->InterpretFrame();
+
+                    lastAC3Frame = packetInterpreter;
+
+                    // Is the whole frame available
+                    const int frameSize = packetInterpreter->getFrameSize();
+                    auSize += frameSize;
+                    if (esBuffer->size() < frameSize)
+                    {
+                        // Not enough data available
+                        incomplete = true;
+                    }
+                    else
+                    {
+                        esBuffer->remove(frameSize);
+                    }
+                }
+                break;
+            case SYNC_INCOMPLETE:
+                // We ran out of data reading the header
+                // save the current state and bail out.
+                LogMessage(Log::DEFAULT_LOG_LEVEL, "AC3 SYNC_INCOMPLETE");
+                incomplete = true;
+                break;
+
+            case SYNC_NOT_FOUND:
+            default:
+                LogMessage(Log::DEFAULT_LOG_LEVEL, "AC3 SYNC_NOT_FOUND");
+                error = true;
+                break;
+        }
+
+
+        if (incomplete)
+        {
+            AC3AccessUnitOutputFrame = nullptr; // we should return null as we don't have a correct frame
+        }
+
+        if (error)
+        {
+            esBuffer->clear();
+            AC3AccessUnitOutputFrame = nullptr; // we should return null as we don't have a correct frame
+        }
+
+        lastAC3Frame = packetInterpreter;
+        return AC3AccessUnitOutputFrame;
+    }
     
-	AC3PacketHandler::AC3PacketHandler(ofstream *str, bool Debug_on)
+	AC3PacketHandler::AC3PacketHandler(ofstream *str, bool Debug_on, bool passThru)
 		:
 		FrameCount(0),
 		DebugOn(Debug_on),
@@ -691,7 +765,8 @@ namespace libr1k
         OutputWAV(nullptr),
 		LogFile(nullptr),
 		firstPTS(0),
-		PacketSpansPES(false)
+		PacketSpansPES(false),
+        Pass_thru(passThru)
 	{
 		stream_id = (char)0xbd;
 		//OutputFile = new WAVFile(*str, &(this->WAVParams));
@@ -706,7 +781,10 @@ namespace libr1k
         wv_params.num_channels = 2;
         wv_params.SamplesPerSec = 48000;
 
-        OutputWAV = shared_ptr<WAVFile>(new WAVFile(outStream, wv_params));
+        if (Pass_thru)
+        {
+            OutputWAV = shared_ptr<WAVFile>(new WAVFile(outStream, wv_params));
+        }
 	}
 
 	void AC3PacketHandler::SetDebugOutput(bool On)
@@ -742,107 +820,65 @@ namespace libr1k
 
         GetDecoder()->addData(PES_data, PES_data_size);
 
-        shared_ptr<SampleBuffer> decoded_frame;
-        while ((decoded_frame = GetDecoder()->DecodeFrame_PassThru()) != nullptr)
+        if (Pass_thru)
         {
-            decoded_frame->setBitDepth(16);
-            // Each frame should be output every 1536 samples
-            const int FrameSamples = AC3Decoder::DECODED_FRAME_SIZE;
-            const int NumSubFrames = FrameSamples * 2;
-            const int dataType = 1;
-            const int dataLength = decoded_frame->size();
-
-            int outputSubFrames = 0;
-            int sourceSubFrames = 0;
-            const AES_Header AES(16, dataType, dataLength);
-            
-            while (sourceSubFrames < decoded_frame->size() && outputSubFrames < NumSubFrames)
+            shared_ptr<SampleBuffer> decoded_frame;
+            while ((decoded_frame = GetDecoder()->DecodeFrame_PassThru()) != nullptr)
             {
-                switch (outputSubFrames)
+                decoded_frame->setBitDepth(16);
+                // Each frame should be output every 1536 samples
+                const int FrameSamples = AC3Decoder::DECODED_FRAME_SIZE;
+                const int NumSubFrames = FrameSamples * 2;
+                const int dataType = 1;
+                const int dataLength = decoded_frame->size();
+
+                int outputSubFrames = 0;
+                int sourceSubFrames = 0;
+                const AES_Header AES(16, dataType, dataLength);
+
+                while (sourceSubFrames < decoded_frame->size() && outputSubFrames < NumSubFrames)
                 {
-                case 0:
-                    OutputWAV->WriteSample16(AES.Pa);
-                    break;
-                case 1:
-                    OutputWAV->WriteSample16(AES.Pb);
-                    break;
-                case 2:
-                    OutputWAV->WriteSample16(AES.Pc);
-                    break;
-                case 3:
-                    OutputWAV->WriteSample16(AES.Pd);
-                    break;
-                default:
-                    OutputWAV->WriteSample16(decoded_frame->get(sourceSubFrames++));
-                    break;
+                    switch (outputSubFrames)
+                    {
+                    case 0:
+                        OutputWAV->WriteSample16(AES.Pa);
+                        break;
+                    case 1:
+                        OutputWAV->WriteSample16(AES.Pb);
+                        break;
+                    case 2:
+                        OutputWAV->WriteSample16(AES.Pc);
+                        break;
+                    case 3:
+                        OutputWAV->WriteSample16(AES.Pd);
+                        break;
+                    default:
+                        OutputWAV->WriteSample16(decoded_frame->get(sourceSubFrames++));
+                        break;
+                    }
+                    outputSubFrames++;
                 }
-                outputSubFrames++;
-            }
 
-            // Pad out to fill spacing
-            while (outputSubFrames < NumSubFrames)
+                // Pad out to fill spacing
+                while (outputSubFrames < NumSubFrames)
+                {
+                    OutputWAV->WriteSample16(0);
+                    outputSubFrames++;
+                }
+            }
+        }
+        else
+        {
+            shared_ptr<SampleBuffer> decoded_frame;
+
+            while ((decoded_frame = GetDecoder()->DecodeFrame()) != nullptr)
             {
-                OutputWAV->WriteSample16(0);
-                outputSubFrames++;
+                shared_ptr<au_ac3_t> ac3_frame_details = GetDecoder()->lastAC3Frame;
+
+                ac3_frame_details->PTS = buf->PTS;
+                ac3_frame_details->write_csv(*outStream);
             }
         }
 	}
 
-#if 0
-    bool AC3PacketHandler::DecodeFrame(unsigned char **Frame, unsigned int *FrameSize)
-	{
-
-        int return_val = au_ac3_t::AU_AC3_SYNC_NOT_FOUND;
-		
-        while ((return_val = ac3Decoder->FindSyncWord()) == au_ac3_t::AU_AC3_OKAY)
-		{
-			if (PacketSpansPES)
-			{
-				// AU spans from last frame so use PTS from last frame but indicate to use the new one next time.
-				PacketSpansPES = false;
-			}
-			else
-			{
-				// AU is completely contained in this AU then update the PTS
-				ac3Decoder->SetPTS(PTS);
-			}
-			
-			ac3Decoder->InterpretFrame();
-			ac3Decoder->write_csv(outStream);
-
-            if (ac3Decoder->a52_locked())
-            {
-                ac3Decoder->decode();
-            }
-			ac3Decoder->JumpOverCurrentFrame();
-		}
-
-        if (return_val == au_ac3_t::AU_AC3_INSUFFICIENT_DATA)
-		{
-			PacketSpansPES = true;
-		}
-		else
-		{
-			PacketSpansPES = false;
-		}
-
-		return;
-
-		int NumStereoPairsStuffed = 0;
-		// Check metadata and extract FSIZE/NBLKS so we know how much stuffing to add between consecutive DTS frames
-		au_ac3_t Metadata(*AC3Frame, *BufferSize);
-		if (Metadata.SYNCWORD != DTS_SYNCWORD)
-		{
-			// This is not a DTS syncword
-			BufferSize = 0;
-			return false;
-		}
-		FrameCount++;
-
-		NumStereoPairsStuffed = 1536;
-		
-
-
-	}
-#endif
 }

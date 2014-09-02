@@ -10,6 +10,7 @@ namespace libr1k
 	{
 		outStream = str;
 		stream_id = -1;
+        this->filePerPes = false;
 
 		DebugOn = Debug_on;
 		if (DebugOn)
@@ -26,7 +27,7 @@ namespace libr1k
 	{
 		this->outStream = NULL;
 		this->stream_id = -1;
-		this->filePerPes = true;
+		this->filePerPes = false;
 		
 		memset( this->base_filename, '\0', MAX_FILENAME_LENGTH);
 #ifdef WIN32
