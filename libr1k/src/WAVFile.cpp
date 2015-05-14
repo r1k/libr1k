@@ -426,12 +426,10 @@ namespace libr1k
 
         local_params.num_channels = data_short;
 
-        local_params.SamplesPerSec = ReadShort(); /* nSamplesPerSec */
-        data_short = ReadShort(); /* nAvgBytesPerSec */
-        data_short = ReadShort(); /* nBlockAlign	*/
-        data_short = ReadShort(); /* wBitsPerSample */
-
-        local_params.bit_depth = data_short * 8;
+        local_params.SamplesPerSec = ReadWord(); /* nSamplesPerSec */
+        ReadWord();                              /* nAvgBytesPerSec */
+        data_short = ReadShort();                /* nBlockAlign     */
+        local_params.bit_depth = ReadShort();    /* wBitsPerSample  */
 
         bool data_Marker_found = false;
         while (!input->eof() && !data_Marker_found)
