@@ -2,7 +2,7 @@
  * LA_debug.h
  *
  *  Created on: 30 Apr 2013
- *      Author: erickel
+ *      Author: r1k
  */
 #pragma once
 
